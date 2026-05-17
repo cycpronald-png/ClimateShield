@@ -12,7 +12,7 @@ Increase risk sensitivity to match actual homeless exposure thresholds (lower WB
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Backend Sensitivity Changes** - Lower WBT thresholds and HNE trigger so risk scores activate at milder conditions
+- [x] **Phase 1: Backend Sensitivity Changes** - Lower WBT thresholds and HNE trigger so risk scores activate at milder conditions
 - [ ] **Phase 2: Frontend Scale Consistency** - Fix 14-Day Risk Outlook /20 → /30 scale throughout the frontend
 - [ ] **Phase 3: End-to-End Verification** - Validate sensitivity changes produce correct scores, /20 is gone, build and deploy clean
 
@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01-PLAN.md — Update backend DEFAULT_CONFIG with lowered WBT thresholds and HNE trigger
 - [x] 01-02-PLAN.md — Update frontend RiskFormulaPanel DEFAULT_CONFIG to match backend
-- [ ] 01-03-PLAN.md — Create Alembic migration and verify scoring integrity
+- [x] 01-03-PLAN.md — Create Alembic migration and verify scoring integrity
 
 ### Phase 2: Frontend Scale Consistency
 **Goal**: All UI displays use the unified /30 risk scale with no /20 artifacts — 14-Day Outlook, Peak Risk, and status messages all consistent
@@ -65,6 +65,6 @@ Phases 1 and 2 are independent and can execute in parallel. Phase 3 requires bot
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend Sensitivity Changes | 2/3 | In Progress | - |
+| 1. Backend Sensitivity Changes | 3/3 | Complete | 2026-05-17 |
 | 2. Frontend Scale Consistency | 0/? | Not started | - |
 | 3. End-to-End Verification | 0/? | Not started | - |

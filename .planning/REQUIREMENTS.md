@@ -10,10 +10,10 @@
 - [x] **SENS-01**: WBT scoring bands use lowered thresholds: WBT < 24°C = 0, 24–27°C = 2, 27–30°C = 4, ≥30°C = 6 (shifted ~2°C down from 25.9/28.9/31.9)
 - [x] **SENS-02**: HNE vulnerability triggers at H>=1 (1+ consecutive hot night) instead of H>=2, so outreach teams are alerted after a single dangerous night
 - [x] **SENS-03**: `DEFAULT_CONFIG` in `risk_config_service.py` updated with new WBT thresholds (wb_t1=24, wb_t2=27, wb_t3=30, wb_t4=33) and trigger_h_score=1
-- [ ] **SENS-04**: DB seed migration updated with new default thresholds and trigger_h_score
-- [ ] **SENS-05**: Active risk config in running DB updated to reflect new thresholds
+- [x] **SENS-04**: DB seed migration updated with new default thresholds and trigger_h_score
+- [x] **SENS-05**: Active risk config in running DB updated to reflect new thresholds
 - [x] **SENS-06**: Admin RiskFormulaPanel reflects and can edit the new threshold values
-- [ ] **SENS-07**: Risk states (Safe/Low/Yellow/Red/Purple) and their score ranges remain 0-30 with same boundaries (0-12, 13-16, 17-22, 23-26, 25-30)
+- [x] **SENS-07**: Risk states (Safe/Low/Yellow/Red/Purple) and their score ranges remain 0-30 with same boundaries (0-12, 13-16, 17-22, 23-26, 25-30)
 
 ### Scale Consistency
 
@@ -63,10 +63,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SENS-01 | Phase 1 | Complete |
 | SENS-02 | Phase 1 | Complete |
 | SENS-03 | Phase 1 | Complete |
-| SENS-04 | Phase 1 | Pending |
-| SENS-05 | Phase 1 | Pending |
+| SENS-04 | Phase 1 | Complete |
+| SENS-05 | Phase 1 | Complete |
 | SENS-06 | Phase 1 | Complete |
-| SENS-07 | Phase 1 | Pending |
+| SENS-07 | Phase 1 | Complete |
 | SCAL-01 | Phase 2 | Pending |
 | SCAL-02 | Phase 2 | Pending |
 | SCAL-03 | Phase 2 | Pending |
