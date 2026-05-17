@@ -26,6 +26,8 @@ Instant risk recognition and predictive early warning — frontline workers must
 
 ### Active
 
+- [ ] Increase risk score sensitivity — lower WBT thresholds by ~2°C (new: 24/27/30/33°C bands instead of 25.9/28.9/31.9/current), lower HNE vulnerability trigger to H>=1 instead of H>=2, so scores reflect homeless exposure at milder conditions
+- [ ] Fix 14-Day Risk Outlook displaying /20 scale — investigate whether display-only or uses old scoring formula, then fix to consistent /30 scale across all views
 - [ ] Extended forecast horizon beyond 9 days for strategic outreach planning and supply stockpiling
 - [ ] Proactive alert system (push notifications, SMS, or messaging app) when risk state changes (deferred to future stage)
 
@@ -42,6 +44,9 @@ Instant risk recognition and predictive early warning — frontline workers must
 - HKO publishes open weather data but lacks WBT and evidence-based street-level risk metrics
 - Homeless outreach teams previously operated without data-driven risk assessment, relying on experience and general weather forecasts
 - The WBT composite risk framework (0-30 scale) was designed specifically for this use case: WBT directly measures heat stress the body experiences, HNE captures consecutive dangerous nights, vulnerability triggers when sustained heat compounds, and warnings multiply risk during typhoon/rainstorm events
+- **Sensitivity problem**: Current WBT thresholds (25.9/28.9/31.9C) are too high for the homeless use case - at ~22-24C HKO WBT the score is 0, but homeless people are already exposed at these temperatures. New thresholds (24/27/30/33C) will shift scores to activate at milder conditions
+- **HNE trigger too conservative**: H>=2 (3-4 nights) means vulnerability does not kick in until sustained heat is already severe. H>=1 (1+ night) will trigger earlier intervention
+- **14-Day /20 inconsistency**: The 14-Day Risk Outlook still shows scores like "6/20" and status messages referencing the old /20 scale - needs investigation and fix to /30
 - The 5 tracked stations cover the key districts where homeless outreach operates
 - Frontline workers need simple, at-a-glance risk states — they do NOT need detailed score breakdowns during active operations (breakdown panel was removed per user feedback)
 - Theoretical max bar (30/30) provides context for how severe the current score is relative to worst-case
@@ -63,7 +68,10 @@ Instant risk recognition and predictive early warning — frontline workers must
 |----------|-----------|---------|
 | 0-30 composite risk scale (not 0-100) | Matches observable risk states (Safe/Low/Yellow/Red/Purple) without false precision | ✓ Good |
 | WBT as primary risk driver (not dry-bulb temperature) | WBT measures heat stress the body actually experiences, including humidity | ✓ Good |
-| HNE trigger at H>=2 (not H>=3) | HNE scores [0,1,2,4] — value 2 maps to 3-4 consecutive nights, the real operational threshold | ✓ Good |
+| HNE trigger at H>=2 (not H>=3) | HNE scores [0,1,2,4] - value 2 maps to 3-4 consecutive nights | ⚠️ Revisit — lowering to H>=1 for earlier intervention |
+| **NEW: Lower WBT thresholds (24/27/30/33°C)** | Current thresholds too high for homeless exposure at milder conditions | — Pending |
+| **NEW: Lower HNE trigger to H>=1** | One hot night already endangers homeless people; earlier intervention saves lives | — Pending |
+| **NEW: Fix 14-Day /20 → /30 inconsistency** | All UI must use unified /30 scale; /20 legacy display undermines trust | — Pending |
 | Priority-ordered state lookup (Purple > Red > Yellow > Low > Safe) | Overlap zones between bands — worst case wins for safety | ✓ Good |
 | Removed score breakdown panel from gauge | Confused frontline workers during active operations — they need state + message, not formula | ✓ Good |
 | Dashboard-only alerts (no push/SMS yet) | Teams check proactively; push alerts deferred to future stage | — Pending |
@@ -89,4 +97,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 after initialization*
+*Last updated: 2026-05-17 after questioning — added sensitivity and /20 issues*
