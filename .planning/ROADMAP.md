@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### v1.1: Risk Score Reliability
 
-- [ ] **Phase 4: Pipeline Resilience** - Fix truthy bugs and null-propagation so CRS is never null when temp data exists
+- [x] **Phase 4: Pipeline Resilience** - Fix truthy bugs and null-propagation so CRS is never null when temp data exists
 - [ ] **Phase 5: Vocabulary Unification** - Canonical RiskState enum, delete legacy functions, normalize all code paths to Safe/Low/Yellow/Red/Purple
 - [ ] **Phase 6: Frontend Reliability** - Gray badge for unknown scores, remove legacy color mappings, clean RiskLevel type
 - [ ] **Phase 7: Data Integrity Verification** - All 5 stations produce non-null CRS, truthy bug eliminated, no phantom scores, build+tests pass
@@ -86,7 +86,12 @@ Plans:
   1. `vocabulary.py` contains `RiskState` enum, V1→V2 mapping dict, and `normalize_risk_level()` — no other code defines risk level names
   2. `risk_level_from_wbt()` and `risk_level_from_max_temp()` deleted — zero callers remain
   3. All `SystemAlert` and alert generation code outputs v2 vocabulary terms only
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Create canonical RiskState enum, V1→V2 mapping, normalize_risk_level() (VOCAB-01)
+- [ ] 05-02-PLAN.md — Migrate callers to v2 vocabulary, rewrite advisories with v2 labels (VOCAB-02, VOCAB-03)
+- [ ] 05-03-PLAN.md — Delete legacy functions, update re-exports, fix truthy bug (VOCAB-02, VOCAB-03)
 
 ### Phase 6: Frontend Reliability
 **Goal**: Frontend never shows misleading 0.0/30 Safe — unknown/missing data shows gray "---" badge; all color mappings use v2 vocabulary only
@@ -120,8 +125,8 @@ Phase 4 can start immediately (bug fixes). Phase 5 depends on Phase 4 stability.
 | 1. Backend Sensitivity Changes | 3/3 | Complete | 2026-05-17 |
 | 2. Frontend Scale Consistency | 2/2 | Complete | 2026-05-17 |
 | 3. End-to-End Verification | 1/1 | Complete | 2026-05-17 |
-| 4. Pipeline Resilience | 0/2 | Planned | - |
-| 5. Vocabulary Unification | 0/? | Not started | - |
+| 4. Pipeline Resilience | 2/2 | Complete | 2026-05-17 |
+| 5. Vocabulary Unification | 0/3 | Planned | - |
 | 6. Frontend Reliability | 0/? | Not started | - |
 | 7. Data Integrity Verification | 0/? | Not started | - |
 
