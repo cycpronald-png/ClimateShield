@@ -27,7 +27,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A single hot night (1 consecutive night with min_temp >= 28°C) triggers vulnerability (V > 0), whereas previously 2+ nights were required
   3. Admin RiskFormulaPanel displays and allows editing of the new threshold values (wb_t1=24, wb_t2=27, wb_t3=30, wb_t4=33, trigger_h_score=1)
   4. Risk states (Safe/Low/Yellow/Red/Purple) and their 0-30 score boundaries (0-12, 13-16, 17-22, 23-26, 27-30) remain unchanged
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Update backend DEFAULT_CONFIG with lowered WBT thresholds and HNE trigger
+- [ ] 01-02-PLAN.md — Update frontend RiskFormulaPanel DEFAULT_CONFIG to match backend
+- [ ] 01-03-PLAN.md — Create Alembic migration and verify scoring integrity
 
 ### Phase 2: Frontend Scale Consistency
 **Goal**: All UI displays use the unified /30 risk scale with no /20 artifacts — 14-Day Outlook, Peak Risk, and status messages all consistent
@@ -60,6 +65,6 @@ Phases 1 and 2 are independent and can execute in parallel. Phase 3 requires bot
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend Sensitivity Changes | 0/? | Not started | - |
+| 1. Backend Sensitivity Changes | 0/3 | Planned | - |
 | 2. Frontend Scale Consistency | 0/? | Not started | - |
 | 3. End-to-End Verification | 0/? | Not started | - |
