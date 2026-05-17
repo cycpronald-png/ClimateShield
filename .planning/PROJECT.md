@@ -8,6 +8,15 @@ A real-time climate risk awareness dashboard for Hong Kong homeless outreach tea
 
 Instant risk recognition and predictive early warning — frontline workers must see the risk state at a glance (Safe/Yellow/Red/Purple) and know what's coming next so they can act before conditions endanger homeless people.
 
+## Current Milestone: v1.1 Risk Score Reliability
+
+**Goal:** Eradicate the 0.0/30 display problem by fixing every point in the HKO→DB→API→UI pipeline where null/missing data silently zeroes the composite risk score, and audit the full data pipeline for other silent failure modes.
+
+**Target features:**
+- Fix all 6 root causes for 0.0/30 (WBT null fallbacks, CRS recomputation, live-score resilience, UI unknown-state)
+- Full data pipeline audit: HKO fetch → parse → persist → API → frontend — find and fix any other null propagation gaps
+- Unified risk level vocabulary (Safe/Low/Yellow/Red/Purple) everywhere, eliminate residual Critical/High/Moderate/Low fallbacks
+
 ## Requirements
 
 ### Validated
@@ -21,17 +30,18 @@ Instant risk recognition and predictive early warning — frontline workers must
 - ✓ Risk score gauge with friendly status messages ("Safe — No Immediate Risk") and theoretical max bar — existing
 - ✓ Warning deduplication (both orchestrator-level and endpoint-level) — existing
 - ✓ Admin-editable risk formula parameters (WBT thresholds, trigger_h_score, multipliers) — existing
-- ✓ Lowered WBT thresholds (24/27/30/33°C) for homeless-exposure sensitivity — Phase 1
-- ✓ HNE vulnerability trigger at H>=1 (single hot night) — Phase 1
-- ✓ Frontend/backend DEFAULT_CONFIG synchronized with new sensitivity values — Phase 1
+- ✓ Lowered WBT thresholds (24/27/30/33°C) for homeless-exposure sensitivity — v1.0
+- ✓ HNE vulnerability trigger at H>=1 (single hot night) — v1.0
+- ✓ Frontend/backend DEFAULT_CONFIG synchronized with new sensitivity values — v1.0
+- ✓ Frontend unified /30 scale (shared riskStates.ts, ForecastComparison Purple threshold fixed) — v1.0
 - ✓ Donation pledge system with drop-off locations and impact tracking — existing
 - ✓ Docker deployment with frontend + backend containers — existing
 
 ### Active
 
-- [ ] Fix 14-Day Risk Outlook displaying /20 scale — investigate whether display-only or uses old scoring formula, then fix to consistent /30 scale across all views
-- [ ] Extended forecast horizon beyond 9 days for strategic outreach planning and supply stockpiling
-- [ ] Proactive alert system (push notifications, SMS, or messaging app) when risk state changes (deferred to future stage)
+- [ ] Fix 0.0/30 display bug — composite_risk_score null propagation from missing humidity/WBT through all API endpoints to UI
+- [ ] Data pipeline audit — trace HKO fetch→parse→persist→API→frontend for any null-handling gaps, silent failures, or stale data issues
+- [ ] Unified risk level vocabulary — eliminate Critical/High/Moderate/Low from all data paths, use Safe/Low/Yellow/Red/Purple consistently
 
 ### Out of Scope
 
@@ -40,19 +50,20 @@ Instant risk recognition and predictive early warning — frontline workers must
 - Mobile native app — web-first responsive dashboard
 - Multi-city/regional expansion — Hong Kong focused
 - Historical climate trend analysis or seasonal comparison — not critical for frontline operations
+- Extended forecast horizon beyond 9 days — deferred to v1.2
+- Proactive push/SMS alert system — deferred to v1.2
 
 ## Context
 
 - HKO publishes open weather data but lacks WBT and evidence-based street-level risk metrics
 - Homeless outreach teams previously operated without data-driven risk assessment, relying on experience and general weather forecasts
 - The WBT composite risk framework (0-30 scale) was designed specifically for this use case: WBT directly measures heat stress the body experiences, HNE captures consecutive dangerous nights, vulnerability triggers when sustained heat compounds, and warnings multiply risk during typhoon/rainstorm events
-- **Sensitivity problem**: Current WBT thresholds (25.9/28.9/31.9C) are too high for the homeless use case - at ~22-24C HKO WBT the score is 0, but homeless people are already exposed at these temperatures. New thresholds (24/27/30/33C) will shift scores to activate at milder conditions
-- **HNE trigger too conservative**: H>=2 (3-4 nights) means vulnerability does not kick in until sustained heat is already severe. H>=1 (1+ night) will trigger earlier intervention
-- **14-Day /20 inconsistency**: The 14-Day Risk Outlook still shows scores like "6/20" and status messages referencing the old /20 scale - needs investigation and fix to /30
 - The 5 tracked stations cover the key districts where homeless outreach operates
 - Frontline workers need simple, at-a-glance risk states — they do NOT need detailed score breakdowns during active operations (breakdown panel was removed per user feedback)
 - Theoretical max bar (30/30) provides context for how severe the current score is relative to worst-case
 - Temperature-aware hot night projection: if forecast min_temp >= 28°C the streak continues (+1), otherwise resets to 0 — reflects actual homeless exposure risk
+- **0.0/30 root causes found**: (1) persister requires both WBT and RH — null when humidity missing, (2) calculate_wbt returns None when rh=None, (3) /live-score 404s when WBT null in DB, (4) risk_level_from_wbt uses old vocabulary not v2 states, (5) /current returns null CRS as-is without recomputation, (6) UI shows misleading 0.0 when score unknown
+- **Data pipeline risk**: HKO sometimes omits humidity for non-Observatory stations; fallback to HKO Observatory humidity exists but gaps remain; WBT null propagates silently through persist→API→UI
 
 ## Constraints
 
@@ -70,16 +81,16 @@ Instant risk recognition and predictive early warning — frontline workers must
 |----------|-----------|---------|
 | 0-30 composite risk scale (not 0-100) | Matches observable risk states (Safe/Low/Yellow/Red/Purple) without false precision | ✓ Good |
 | WBT as primary risk driver (not dry-bulb temperature) | WBT measures heat stress the body actually experiences, including humidity | ✓ Good |
-| HNE trigger at H>=2 (not H>=3) | HNE scores [0,1,2,4] - value 2 maps to 3-4 consecutive nights | ⚠️ Revisit — lowering to H>=1 for earlier intervention |
-| **NEW: Lower WBT thresholds (24/27/30/33°C)** | Current thresholds too high for homeless exposure at milder conditions | ✓ Good — Phase 1 |
-| **NEW: Lower HNE trigger to H>=1** | One hot night already endangers homeless people; earlier intervention saves lives | ✓ Good — Phase 1 |
-| **NEW: Fix 14-Day /20 → /30 inconsistency** | All UI must use unified /30 scale; /20 legacy display undermines trust | — Pending |
+| HNE trigger at H>=1 | One hot night already endangers homeless people; earlier intervention saves lives | ✓ Good — v1.0 |
+| Lower WBT thresholds (24/27/30/33°C) | Current thresholds too high for homeless exposure at milder conditions | ✓ Good — v1.0 |
 | Priority-ordered state lookup (Purple > Red > Yellow > Low > Safe) | Overlap zones between bands — worst case wins for safety | ✓ Good |
 | Removed score breakdown panel from gauge | Confused frontline workers during active operations — they need state + message, not formula | ✓ Good |
-| Dashboard-only alerts (no push/SMS yet) | Teams check proactively; push alerts deferred to future stage | — Pending |
-| 9-day forecast horizon | Matches HKO forecast data; longer horizon needed for strategic planning | ⚠️ Revisit — need extended horizon |
+| Dashboard-only alerts (no push/SMS yet) | Teams check proactively; push alerts deferred to v1.2 | — Pending |
 | SQLite over PostgreSQL | Single-instance deployment, no concurrent writes, simpler ops | ✓ Good |
 | Docker deployment | Reproducible across macOS/Windows, no environment drift | ✓ Good |
+| **RH=70% fallback when humidity missing** | HKO sometimes omits per-station humidity; 70% is typical HK summer average — produces WBT estimate instead of null | ✓ Good — v1.1 |
+| **On-the-fly CRS recomputation for null scores** | API endpoints should never return null composite_risk_score when temp data exists | ✓ Good — v1.1 |
+| **Unified Safe/Low/Yellow/Red/Purple vocabulary** | Eliminate Critical/High/Moderate/Low from all code paths to prevent mixed states in DB and UI | — In progress — v1.1 |
 
 ## Evolution
 
@@ -99,4 +110,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 after Phase 1 completion*
+*Last updated: 2026-05-17 after v1.1 milestone start*

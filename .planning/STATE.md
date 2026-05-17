@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-05-17T07:48:00Z"
-last_activity: 2026-05-17 — Completed 01-03-PLAN.md (Phase 1 complete)
+milestone: v1.1
+milestone_name: Risk Score Reliability
+status: defining_requirements
+stopped_at: —
+last_updated: "2026-05-17T10:00:00Z"
+last_activity: 2026-05-17 — Milestone v1.1 started
 progress:
-  total_phases: 3
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,37 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-17)
 
 **Core value:** Instant risk recognition and predictive early warning — frontline workers must see the risk state at a glance and know what's coming next so they can act before conditions endanger homeless people.
-**Current focus:** Phase 1 — Backend Sensitivity Changes
+**Current focus:** Milestone v1.1 — Risk Score Reliability
 
 ## Current Position
 
-Phase: 1 of 3 (Backend Sensitivity Changes) — COMPLETE
-Plan: 3 of 3 in current phase (all plans complete)
-Status: 01-01, 01-02, 01-03 all complete
-Last activity: 2026-05-17 — Completed 01-03-PLAN.md
-
-Progress: [██████████] 100%
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 3
-- Average duration: ~1min
-- Total execution time: ~0.03 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-backend-sensitivity-changes | 3 | ~3min | ~1min |
-
-**Recent Trend:**
-
-- Last 5 plans: 01-03 (~1min), 01-02 (~1min), 01-01 (~1min)
-- Trend: Steady
-
-*Updated after each plan completion*
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-17 — Milestone v1.1 started
 
 ## Accumulated Context
 
@@ -60,13 +37,10 @@ Progress: [██████████] 100%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Roadmap: Phases 1 and 2 are independent (can parallelize), Phase 3 depends on both
-- Roadmap: Fine granularity — 3 phases covering 17 v1 requirements
-- Frontend DEFAULT_CONFIG must mirror backend DEFAULT_CONFIG for display and reset accuracy (01-02)
-- State range overlaps are intentional (Red/Purple at 25-26) — resolved by priority order in lookup_state (01-01)
-- HNE scores shifted to [0,1,2,4,6] so trigger_h_score=1 references a valid HNE score (01-01)
-- Migration updates ALL rows in risk_formula_configs to prevent stale data (01-03)
-- Default seed row renamed to default_v2_sensitivity to distinguish updated config (01-03)
+- v1.0: Phases 1-3 (SENS/SCAL/VERI) all code-complete — sensitivity thresholds lowered, /30 scale unified, 6 root causes fixed
+- v1.0: Frontend shared riskStates.ts created as single source of truth for state logic
+- v1.0: RiskFormulaPanel DEFAULT_CONFIG synced with backend
+- v1.1 scope: 0.0/30 fix + data pipeline audit + unified vocabulary
 
 ### Pending Todos
 
@@ -82,11 +56,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| Feature | Extended forecast horizon beyond 9 days | Deferred | v1.1 start |
+| Feature | Proactive push/SMS alert system | Deferred | v1.1 start |
 
 ## Session Continuity
 
 Last session: 2026-05-17
-Stopped at: Completed 01-03-PLAN.md (Phase 1 complete)
-Resume file: .planning/phases/01-backend-sensitivity-changes/01-03-SUMMARY.md
-**Planned Phase:** 1 (Backend Sensitivity Changes) — 3 plans — 2026-05-17T07:41:35.709Z
+Stopped at: Milestone v1.1 initialization
