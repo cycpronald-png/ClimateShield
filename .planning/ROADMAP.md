@@ -116,7 +116,11 @@ Plans:
   2. `rh=0` is not silently replaced with `rh=70` (truthy bug eliminated)
   3. Forecast days with null `max_temp` produce no CRS (no phantom scores)
   4. TypeScript 0 errors, Vite build succeeds, all backend tests pass
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Fix TypeScript build errors + V11-01/02/03 integration tests
+- [ ] 07-02-PLAN.md — Full V11-04 end-to-end verification + ROADMAP update
 
 ## Progress
 
@@ -131,7 +135,7 @@ Phase 4 can start immediately (bug fixes). Phase 5 depends on Phase 4 stability.
 | 4. Pipeline Resilience | 2/2 | Complete | 2026-05-17 |
 | 5. Vocabulary Unification | 3/3 | Complete | 2026-05-17 |
 | 6. Frontend Reliability | 0/1 | Planned | - |
-| 7. Data Integrity Verification | 0/? | Not started | - |
+| 7. Data Integrity Verification | 0/2 | Planned | - |
 
 ---
 *Roadmap updated: 2026-05-17 — v1.1 phases 4-7 added*
