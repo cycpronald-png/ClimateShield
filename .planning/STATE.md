@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-05-17T07:44:11Z"
-last_activity: 2026-05-17 — Completed 01-02-PLAN.md
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-05-17T07:44:58Z"
+last_activity: 2026-05-17 — Completed 01-01-PLAN.md
 progress:
   total_phases: 3
   completed_phases: 0
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-17)
 ## Current Position
 
 Phase: 1 of 3 (Backend Sensitivity Changes)
-Plan: 2 of 3 in current phase
-Status: Executing plan 01-03
-Last activity: 2026-05-17 — Completed 01-02-PLAN.md
+Plan: 1 of 3 in current phase (01-01 complete)
+Status: 01-01 complete, 01-02 previously completed
+Last activity: 2026-05-17 — Completed 01-01-PLAN.md
 
 Progress: [███░░░░░░░] 33%
 
@@ -63,6 +63,8 @@ Recent decisions affecting current work:
 - Roadmap: Phases 1 and 2 are independent (can parallelize), Phase 3 depends on both
 - Roadmap: Fine granularity — 3 phases covering 17 v1 requirements
 - Frontend DEFAULT_CONFIG must mirror backend DEFAULT_CONFIG for display and reset accuracy (01-02)
+- State range overlaps are intentional (Red/Purple at 25-26) — resolved by priority order in lookup_state (01-01)
+- HNE scores shifted to [0,1,2,4,6] so trigger_h_score=1 references a valid HNE score (01-01)
 
 ### Pending Todos
 
@@ -83,6 +85,6 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-05-17
-Stopped at: Completed 01-02-PLAN.md
-Resume file: .planning/phases/01-backend-sensitivity-changes/01-02-SUMMARY.md
+Stopped at: Completed 01-01-PLAN.md
+Resume file: .planning/phases/01-backend-sensitivity-changes/01-01-SUMMARY.md
 **Planned Phase:** 1 (Backend Sensitivity Changes) — 3 plans — 2026-05-17T07:41:35.709Z
