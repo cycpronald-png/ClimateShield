@@ -22,7 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### v1.1: Risk Score Reliability
 
 - [x] **Phase 4: Pipeline Resilience** - Fix truthy bugs and null-propagation so CRS is never null when temp data exists
-- [ ] **Phase 5: Vocabulary Unification** - Canonical RiskState enum, delete legacy functions, normalize all code paths to Safe/Low/Yellow/Red/Purple
+- [x] **Phase 5: Vocabulary Unification** - Canonical RiskState enum, delete legacy functions, normalize all code paths to Safe/Low/Yellow/Red/Purple
 - [ ] **Phase 6: Frontend Reliability** - Gray badge for unknown scores, remove legacy color mappings, clean RiskLevel type
 - [ ] **Phase 7: Data Integrity Verification** - All 5 stations produce non-null CRS, truthy bug eliminated, no phantom scores, build+tests pass
 
@@ -101,7 +101,10 @@ Plans:
   1. RiskScoreGauge shows gray badge + "---" + "Computing risk score…" when score is unknown (not "0.0/30 Safe")
   2. RiskGrid and StationDetailModal color map contains only Safe/Low/Yellow/Red/Purple entries
   3. `types.ts` RiskLevel type is `'Safe' | 'Low' | 'Yellow' | 'Red' | 'Purple'` only — no duplicates, no legacy terms
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 06-01-PLAN.md — Clean RiskLevel type, remove legacy color maps, add gray unknown-state badge to AllStationsGrid
 **UI hint**: yes
 
 ### Phase 7: Data Integrity Verification
@@ -126,8 +129,8 @@ Phase 4 can start immediately (bug fixes). Phase 5 depends on Phase 4 stability.
 | 2. Frontend Scale Consistency | 2/2 | Complete | 2026-05-17 |
 | 3. End-to-End Verification | 1/1 | Complete | 2026-05-17 |
 | 4. Pipeline Resilience | 2/2 | Complete | 2026-05-17 |
-| 5. Vocabulary Unification | 0/3 | Planned | - |
-| 6. Frontend Reliability | 0/? | Not started | - |
+| 5. Vocabulary Unification | 3/3 | Complete | 2026-05-17 |
+| 6. Frontend Reliability | 0/1 | Planned | - |
 | 7. Data Integrity Verification | 0/? | Not started | - |
 
 ---
