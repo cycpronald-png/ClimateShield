@@ -1,0 +1,237 @@
+{
+    "_meta": {
+        "models": {
+            "districts": "Districts monitored by ClimateShield",
+            "riskOverviews": "High-level risk summary for dashboard cards",
+            "riskDetails": "Detailed drill-down data including agent debates"
+        }
+    },
+    "districts": [
+        {
+            "id": "dist-001",
+            "name": "Yau Tsim Mong",
+            "riskScore": 88,
+            "riskLevel": "critical",
+            "trend": "up",
+            "primaryDriver": "Wet-Bulb > 32°C",
+            "lastUpdated": "2026-07-14T14:30:00Z",
+            "history": [
+                65,
+                68,
+                72,
+                75,
+                82,
+                85,
+                88
+            ],
+            "agentDiscussion": [
+                {
+                    "agent": "Meteorologist",
+                    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+                    "role": "Weather Specialist",
+                    "message": {
+                        "type": "text",
+                        "children": [
+                            "HKO signals a 'Very Hot Weather Warning'. Humidity is holding at 88% despite the evening approach. Stull's formula indicates Wet-Bulb will cross 32°C by 18:00."
+                        ]
+                    }
+                },
+                {
+                    "agent": "Biologist",
+                    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
+                    "role": "Health Specialist",
+                    "message": {
+                        "type": "box",
+                        "children": [
+                            {
+                                "type": "text",
+                                "children": [
+                                    "At 32°C Wet-Bulb, physiological cooling via sweat stops. High risk for street sleepers in unventilated areas. I concur with the critical assessment."
+                                ]
+                            },
+                            {
+                                "type": "alert",
+                                "props": {
+                                    "severity": "destructive",
+                                    "title": "Physiological Threat"
+                                },
+                                "children": [
+                                    "Core body temperature rise predicted within 2 hours of exposure."
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "agent": "Sentinel",
+                    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bandit",
+                    "role": "Risk Guardian",
+                    "message": {
+                        "type": "box",
+                        "children": [
+                            {
+                                "type": "text",
+                                "children": [
+                                    "Threshold breached. Proposing RED alert for immediate outreach. Target Grids: 7 and 12."
+                                ]
+                            },
+                            {
+                                "type": "card",
+                                "props": {
+                                    "title": "Targeted Outreach Plan"
+                                },
+                                "children": [
+                                    {
+                                        "type": "list",
+                                        "children": [
+                                            "Deploy cooling kits to Grid 7 (Reclamation St)",
+                                            "Open temporary shelter at YTM Center"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "agent": "Auditor",
+                    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Destiny",
+                    "role": "Compliance",
+                    "message": {
+                        "type": "box",
+                        "children": [
+                            {
+                                "type": "text",
+                                "children": [
+                                    "Proposal valid. Confidence 92%. Alert approved for dispatch."
+                                ]
+                            },
+                            {
+                                "type": "button",
+                                "props": {
+                                    "variant": "default",
+                                    "className": "w-full"
+                                },
+                                "children": [
+                                    "Dispatch Approved"
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ],
+            "reportSnapshot": {
+                "generatedAt": "2026-07-14T14:35:00Z",
+                "consensus": "Critical Heat Stress Risk",
+                "actionItems": [
+                    "Deploy cooling kits to Grid 7",
+                    "Open temporary shelter at YTM Center"
+                ]
+            }
+        },
+        {
+            "id": "dist-002",
+            "name": "Sham Shui Po",
+            "riskScore": 72,
+            "riskLevel": "high",
+            "trend": "stable",
+            "primaryDriver": "High Humidity",
+            "lastUpdated": "2026-07-14T14:30:00Z",
+            "history": [
+                60,
+                62,
+                65,
+                70,
+                71,
+                72,
+                72
+            ],
+            "agentDiscussion": [
+                {
+                    "agent": "Meteorologist",
+                    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+                    "role": "Weather Specialist",
+                    "message": {
+                        "type": "text",
+                        "children": [
+                            "Humidity remains high at 92%. Localized heat pooling observed in sub-divided unit dense blocks."
+                        ]
+                    }
+                }
+            ],
+            "reportSnapshot": null
+        },
+        {
+            "id": "dist-003",
+            "name": "Wan Chai",
+            "riskScore": 45,
+            "riskLevel": "moderate",
+            "trend": "down",
+            "primaryDriver": "Wind Chill",
+            "lastUpdated": "2026-07-14T14:30:00Z",
+            "history": [
+                55,
+                52,
+                50,
+                48,
+                46,
+                45,
+                45
+            ],
+            "agentDiscussion": [],
+            "reportSnapshot": null
+        },
+        {
+            "id": "dist-004",
+            "name": "Central",
+            "riskScore": 30,
+            "riskLevel": "low",
+            "trend": "stable",
+            "primaryDriver": "Normal",
+            "lastUpdated": "2026-07-14T14:30:00Z",
+            "history": [
+                32,
+                31,
+                30,
+                30,
+                30,
+                30,
+                30
+            ],
+            "agentDiscussion": [],
+            "reportSnapshot": null
+        },
+        {
+            "id": "dist-005",
+            "name": "Kowloon City",
+            "riskScore": 65,
+            "riskLevel": "high",
+            "trend": "up",
+            "primaryDriver": "Urban Heat Island",
+            "lastUpdated": "2026-07-14T14:30:00Z",
+            "history": [
+                50,
+                55,
+                58,
+                60,
+                62,
+                63,
+                65
+            ],
+            "agentDiscussion": [
+                {
+                    "agent": "Biologist",
+                    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
+                    "role": "Health Specialist",
+                    "message": {
+                        "type": "text",
+                        "children": [
+                            "Receiving reports of elderly discomfort in To Kwa Wan. Urban Heat Island effect is amplifying temperatures."
+                        ]
+                    }
+                }
+            ],
+            "reportSnapshot": null
+        }
+    ]
+}

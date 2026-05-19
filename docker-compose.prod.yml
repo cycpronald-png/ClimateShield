@@ -1,0 +1,47 @@
+# ClimateShield — Production Docker Compose
+# Differences from dev docker-compose.yml:
+# - Frontend uses the built static bundle (no host bind mounts)
+# - Backend serves built frontend via STATIC_DIR
+# - No source code mounts, no hot-reload
+# - Restart policy is always
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: climateshield-backend-prod
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      STATIC_DIR: /app/frontend/dist
+    ports:
+      - "8000:8000"
+    volumes:
+      - climateshield_data_prod:/app/backend/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: always
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: climateshield-frontend-prod
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "5173:5173"
+    # No volumes — uses the image-built static files
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  climateshield_data_prod:

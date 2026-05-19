@@ -13,10 +13,12 @@ from backend import models
 
 DEFAULT_CONFIG = {
     "wbt_thresholds": [
-        {"max_temp": 23.9, "score": 0},
+        {"max_temp": 21.9, "score": 0},
+        {"min_temp": 22, "max_temp": 23.9, "score": 1},
         {"min_temp": 24, "max_temp": 26.9, "score": 2},
         {"min_temp": 27, "max_temp": 29.9, "score": 4},
-        {"min_temp": 30, "score": 6},
+        {"min_temp": 30, "max_temp": 34.4, "score": 6},
+        {"min_temp": 34.5, "score": 8},
     ],
     "hne_thresholds": [
         {"max_nights": 0, "score": 0},
@@ -28,7 +30,7 @@ DEFAULT_CONFIG = {
     "vulnerability_config": {"trigger_h_score": 1, "bonus": 5},
     "warning_multipliers": {
         "none": 1.0,
-        "thunderstorm_or_amber_rain": 1.2,
+        "thunderstorm_or_amber_rain": 2.0,
         "t1_or_red_rain": 1.5,
         "t3": 1.5,
         "black_rain": 2.0,

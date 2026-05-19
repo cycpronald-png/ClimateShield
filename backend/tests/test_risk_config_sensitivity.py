@@ -19,13 +19,18 @@ from services.climate.scoring_v2 import lookup_wbt_score, lookup_hne_score, comp
 class TestWBTThresholdSensitivity:
     """SENS-01: Lower WBT thresholds activate at milder conditions."""
 
-    def test_wbt_below_24_is_score_zero(self):
-        """WBT 23.9°C → score 0 (below wb_t1=24)."""
-        w = lookup_wbt_score(23.9, DEFAULT_CONFIG["wbt_thresholds"])
+    def test_wbt_below_22_is_score_zero(self):
+        """WBT 21.9°C → score 0 (below first scoring threshold of 22)."""
+        w = lookup_wbt_score(21.9, DEFAULT_CONFIG["wbt_thresholds"])
         assert w == 0
 
+    def test_wbt_22_maps_to_score_1(self):
+        """WBT 22.0°C → score 1 (22 <= WBT < 24). New band for warm-humid conditions."""
+        w = lookup_wbt_score(22.0, DEFAULT_CONFIG["wbt_thresholds"])
+        assert w == 1
+
     def test_wbt_24_maps_to_score_2(self):
-        """WBT 24.0°C → score 2 (24 <= WBT < 27). Key change: was 0 before."""
+        """WBT 24.0°C → score 2 (24 <= WBT < 27)."""
         w = lookup_wbt_score(24.0, DEFAULT_CONFIG["wbt_thresholds"])
         assert w == 2
 
@@ -39,17 +44,21 @@ class TestWBTThresholdSensitivity:
         w = lookup_wbt_score(30.0, DEFAULT_CONFIG["wbt_thresholds"])
         assert w == 6
 
-    def test_wbt_first_band_max_temp_is_23_9(self):
-        """First WBT band upper bound is 23.9°C."""
-        assert DEFAULT_CONFIG["wbt_thresholds"][0]["max_temp"] == 23.9
+    def test_wbt_first_band_max_temp_is_21_9(self):
+        """First WBT band upper bound is 21.9°C."""
+        assert DEFAULT_CONFIG["wbt_thresholds"][0]["max_temp"] == 21.9
 
-    def test_wbt_second_band_min_temp_is_24(self):
-        """Second WBT band lower bound is 24°C."""
-        assert DEFAULT_CONFIG["wbt_thresholds"][1]["min_temp"] == 24
+    def test_wbt_second_band_min_temp_is_22(self):
+        """Second WBT band lower bound is 22°C (new W=1 band)."""
+        assert DEFAULT_CONFIG["wbt_thresholds"][1]["min_temp"] == 22
 
-    def test_wbt_second_band_max_temp_is_26_9(self):
-        """Second WBT band upper bound is 26.9°C."""
-        assert DEFAULT_CONFIG["wbt_thresholds"][1]["max_temp"] == 26.9
+    def test_wbt_third_band_min_temp_is_24(self):
+        """Third WBT band lower bound is 24°C."""
+        assert DEFAULT_CONFIG["wbt_thresholds"][2]["min_temp"] == 24
+
+    def test_wbt_third_band_max_temp_is_26_9(self):
+        """Third WBT band upper bound is 26.9°C."""
+        assert DEFAULT_CONFIG["wbt_thresholds"][2]["max_temp"] == 26.9
 
 
 class TestHNEThresholdSensitivity:

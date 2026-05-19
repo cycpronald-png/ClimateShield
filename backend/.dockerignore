@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.env
+climateshield.db
+*.db
+*.db-wal
+*.db-shm
+data/

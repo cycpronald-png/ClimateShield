@@ -1,0 +1,161 @@
+{
+    "_meta": {
+        "models": {
+            "stations": "Weather monitoring stations with official and AI forecasts"
+        }
+    },
+    "stations": [
+        {
+            "id": "yau-tsim-mong",
+            "name": "Yau Tsim Mong",
+            "location": {
+                "lat": 22.31,
+                "lng": 114.17
+            },
+            "current": {
+                "temp": 33,
+                "humidity": 85,
+                "wetBulb": 31.2,
+                "riskLevel": "critical"
+            },
+            "forecast": [
+                {
+                    "date": "2026-07-15",
+                    "hko": {
+                        "tempMin": 28,
+                        "tempMax": 33,
+                        "icon": "sunny",
+                        "description": "Very Hot"
+                    },
+                    "ai": {
+                        "riskScore": 92,
+                        "wetBulbPeak": 32.5,
+                        "isDangerZone": true,
+                        "primaryDriver": "Urban Heat Island"
+                    }
+                },
+                {
+                    "date": "2026-07-16",
+                    "hko": {
+                        "tempMin": 28,
+                        "tempMax": 32,
+                        "icon": "cloudy",
+                        "description": "Hot with Showers"
+                    },
+                    "ai": {
+                        "riskScore": 75,
+                        "wetBulbPeak": 30.1,
+                        "isDangerZone": false,
+                        "primaryDriver": "Humidity Spike"
+                    }
+                },
+                {
+                    "date": "2026-07-17",
+                    "hko": {
+                        "tempMin": 27,
+                        "tempMax": 31,
+                        "icon": "rain",
+                        "description": "Occasional Rain"
+                    },
+                    "ai": {
+                        "riskScore": 45,
+                        "wetBulbPeak": 28.5,
+                        "isDangerZone": false,
+                        "primaryDriver": "None"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "sham-shui-po",
+            "name": "Sham Shui Po",
+            "location": {
+                "lat": 22.33,
+                "lng": 114.16
+            },
+            "current": {
+                "temp": 32,
+                "humidity": 88,
+                "wetBulb": 30.5,
+                "riskLevel": "high"
+            },
+            "forecast": [
+                {
+                    "date": "2026-07-15",
+                    "hko": {
+                        "tempMin": 28,
+                        "tempMax": 32,
+                        "icon": "sunny",
+                        "description": "Hot"
+                    },
+                    "ai": {
+                        "riskScore": 85,
+                        "wetBulbPeak": 31.8,
+                        "isDangerZone": true,
+                        "primaryDriver": "Humidity"
+                    }
+                }
+            ]
+        },
+        {
+            "id": "wan-chai",
+            "name": "Wan Chai",
+            "location": {
+                "lat": 22.27,
+                "lng": 114.17
+            },
+            "current": {
+                "temp": 30,
+                "humidity": 75,
+                "wetBulb": 27.5,
+                "riskLevel": "moderate"
+            },
+            "forecast": []
+        },
+        {
+            "id": "central-and-western",
+            "name": "Central & Western",
+            "location": {
+                "lat": 22.28,
+                "lng": 114.15
+            },
+            "current": {
+                "temp": 29,
+                "humidity": 70,
+                "wetBulb": 26.0,
+                "riskLevel": "low"
+            },
+            "forecast": []
+        },
+        {
+            "id": "sai-kung",
+            "name": "Sai Kung",
+            "location": {
+                "lat": 22.38,
+                "lng": 114.27
+            },
+            "current": {
+                "temp": 30,
+                "humidity": 90,
+                "wetBulb": 29.5,
+                "riskLevel": "high"
+            },
+            "forecast": []
+        },
+        {
+            "id": "tsuen-wan",
+            "name": "Tsuen Wan",
+            "location": {
+                "lat": 22.37,
+                "lng": 114.11
+            },
+            "current": {
+                "temp": 31,
+                "humidity": 80,
+                "wetBulb": 28.8,
+                "riskLevel": "moderate"
+            },
+            "forecast": []
+        }
+    ]
+}

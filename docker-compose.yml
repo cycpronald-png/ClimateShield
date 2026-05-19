@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: climateshield-backend
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+      STATIC_DIR: /app/frontend/dist
+    ports:
+      - "8000:8000"
+    volumes:
+      - climateshield_data:/app/backend/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: climateshield-frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      # LAN Access: binds to all interfaces (0.0.0.0). Access from other devices via host IP:5173
+      - "5173:5173"
+    volumes:
+      # ⚠️ DEV-ONLY: Remove these mounts for production.
+      # They expose the host filesystem. Use docker-compose.prod.yml instead.
+      - ./src:/app/src:ro
+      - ./index.html:/app/index.html:ro
+      - ./vite.config.ts:/app/vite.config.ts:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./tsconfig.app.json:/app/tsconfig.app.json:ro
+      - ./public:/app/public:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  climateshield_data:
