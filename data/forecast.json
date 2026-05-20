@@ -1,0 +1,161 @@
+[
+  {
+    "forecast_date": "20260521",
+    "min_temp": 25,
+    "max_temp": 28,
+    "min_rh": 80,
+    "max_rh": 95,
+    "weather_desc": "Mainly cloudy with occasional showers and a few squally thunderstorms. Showers will be heavier in some areas at first.",
+    "wind": "South force 3 to 4.",
+    "psr": "High",
+    "icon_code": 63
+  },
+  {
+    "forecast_date": "20260522",
+    "min_temp": 26,
+    "max_temp": 31,
+    "min_rh": 70,
+    "max_rh": 95,
+    "weather_desc": "Mainly cloudy. A few showers in the morning. Sunny periods in the afternoon.",
+    "wind": "South force 3 to 4.",
+    "psr": "Medium Low",
+    "icon_code": 54
+  },
+  {
+    "forecast_date": "20260523",
+    "min_temp": 27,
+    "max_temp": 32,
+    "min_rh": 70,
+    "max_rh": 90,
+    "weather_desc": "Sunny periods. Isolated showers in the morning. Hot during the day.",
+    "wind": "South to southwest force 4.",
+    "psr": "Low",
+    "icon_code": 51
+  },
+  {
+    "forecast_date": "20260524",
+    "min_temp": 27,
+    "max_temp": 32,
+    "min_rh": 70,
+    "max_rh": 90,
+    "weather_desc": "Sunny periods. Isolated showers in the morning. Hot during the day.",
+    "wind": "South to southwest force 4.",
+    "psr": "Low",
+    "icon_code": 51
+  },
+  {
+    "forecast_date": "20260525",
+    "min_temp": 28,
+    "max_temp": 32,
+    "min_rh": 65,
+    "max_rh": 90,
+    "weather_desc": "Hot with sunny periods.",
+    "wind": "South to southwest force 4.",
+    "psr": "Low",
+    "icon_code": 51
+  },
+  {
+    "forecast_date": "20260526",
+    "min_temp": 28,
+    "max_temp": 32,
+    "min_rh": 65,
+    "max_rh": 90,
+    "weather_desc": "Hot with sunny periods.",
+    "wind": "South to southwest force 4.",
+    "psr": "Low",
+    "icon_code": 51
+  },
+  {
+    "forecast_date": "20260527",
+    "min_temp": 28,
+    "max_temp": 32,
+    "min_rh": 65,
+    "max_rh": 90,
+    "weather_desc": "Mainly fine and hot.",
+    "wind": "South to southwest force 3 to 4.",
+    "psr": "Low",
+    "icon_code": 51
+  },
+  {
+    "forecast_date": "20260528",
+    "min_temp": 27,
+    "max_temp": 32,
+    "min_rh": 70,
+    "max_rh": 90,
+    "weather_desc": "Sunny periods and isolated showers. Hot during the day.",
+    "wind": "South force 3.",
+    "psr": "Low",
+    "icon_code": 51
+  },
+  {
+    "forecast_date": "20260529",
+    "min_temp": 27,
+    "max_temp": 31,
+    "min_rh": 75,
+    "max_rh": 95,
+    "weather_desc": "Sunny intervals and a few showers.",
+    "wind": "South to southeast force 3.",
+    "psr": "Low",
+    "icon_code": 54
+  },
+  {
+    "forecast_date": "20260520",
+    "min_temp": 24.2,
+    "max_temp": 26.4,
+    "min_rh": 94,
+    "max_rh": 94,
+    "weather_desc": "Extended Forecast",
+    "wind": "",
+    "psr": "",
+    "icon_code": 50,
+    "source": "open_meteo"
+  },
+  {
+    "forecast_date": "20260530",
+    "min_temp": 24.5,
+    "max_temp": 28.6,
+    "min_rh": 90,
+    "max_rh": 90,
+    "weather_desc": "Extended Forecast",
+    "wind": "",
+    "psr": "",
+    "icon_code": 50,
+    "source": "open_meteo"
+  },
+  {
+    "forecast_date": "20260531",
+    "min_temp": 25.0,
+    "max_temp": 29.0,
+    "min_rh": 89,
+    "max_rh": 89,
+    "weather_desc": "Extended Forecast",
+    "wind": "",
+    "psr": "",
+    "icon_code": 50,
+    "source": "open_meteo"
+  },
+  {
+    "forecast_date": "20260601",
+    "min_temp": 25.1,
+    "max_temp": 27.1,
+    "min_rh": 89,
+    "max_rh": 89,
+    "weather_desc": "Extended Forecast",
+    "wind": "",
+    "psr": "",
+    "icon_code": 50,
+    "source": "open_meteo"
+  },
+  {
+    "forecast_date": "20260602",
+    "min_temp": 24.8,
+    "max_temp": 26.6,
+    "min_rh": 75,
+    "max_rh": 75,
+    "weather_desc": "Extended Forecast",
+    "wind": "",
+    "psr": "",
+    "icon_code": 50,
+    "source": "open_meteo"
+  }
+]
