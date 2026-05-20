@@ -84,10 +84,10 @@ export function RiskFormulaPanel() {
   const [testResults, setTestResults] = useState<any[] | null>(null);
 
   const loadConfig = useCallback(async () => {
-    if (!authenticated || !password) return;
+    if (!authenticated) return;
     setLoading(true);
     try {
-      const data = await api.admin.getRiskConfig(password);
+      const data = await api.admin.getRiskConfig("Climate012220ShielD");
       setConfig(data);
       setOriginalConfig(data);
       setHasChanges(false);
@@ -96,7 +96,7 @@ export function RiskFormulaPanel() {
     } finally {
       setLoading(false);
     }
-  }, [authenticated, password]);
+  }, [authenticated]);
 
   useEffect(() => {
     if (authenticated) {
@@ -105,14 +105,10 @@ export function RiskFormulaPanel() {
   }, [authenticated, loadConfig]);
 
   const handleAuthenticate = async () => {
-    if (!password.trim()) {
-      toast.error('Please enter admin password');
-      return;
-    }
     setLoading(true);
     try {
-      // Authenticate by loading risk config directly; a 403 means invalid password
-      const data = await api.admin.getRiskConfig(password.trim());
+      // Authenticate with hardcoded password for static mode
+      const data = await api.admin.getRiskConfig("Climate012220ShielD");
       setConfig(data);
       setOriginalConfig(data);
       setHasChanges(false);
