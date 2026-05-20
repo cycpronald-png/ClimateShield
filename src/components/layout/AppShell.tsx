@@ -15,7 +15,7 @@ export function AppShell() {
             {/* Mobile Header */}
             <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-white dark:bg-zinc-950 px-6 lg:hidden">
                 <div className="flex items-center gap-2 font-bold text-violet-700 dark:text-violet-500">
-                    <img src="/logo.png" alt="ClimateShield" className="h-12 w-12 object-contain mix-blend-multiply dark:mix-blend-screen" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ClimateShield" className="h-12 w-12 object-contain mix-blend-multiply dark:mix-blend-screen" />
                     <span>ClimateShield</span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -30,7 +30,7 @@ export function AppShell() {
                         </SheetTrigger>
                         <SheetContent side="left" className="w-[240px] p-0">
                             <div className="flex h-16 items-center border-b px-6 font-bold text-violet-700 dark:text-violet-500">
-                                <img src="/logo.png" alt="ClimateShield" className="mr-2 h-12 w-12 object-contain mix-blend-multiply dark:mix-blend-screen" />
+                                <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ClimateShield" className="mr-2 h-12 w-12 object-contain mix-blend-multiply dark:mix-blend-screen" />
                                 <span>ClimateShield</span>
                             </div>
                             <MainNav isMobile onLinkClick={() => setIsOpen(false)} />
@@ -42,7 +42,7 @@ export function AppShell() {
             {/* Desktop Sidebar */}
             <aside className="hidden w-64 flex-col border-r bg-white dark:bg-zinc-950 lg:flex">
                 <div className="flex h-16 items-center border-b px-6 font-bold text-violet-700 dark:text-violet-500">
-                    <img src="/logo.png" alt="ClimateShield" className="mr-2 h-12 w-12 object-contain mix-blend-multiply dark:mix-blend-screen" />
+                    <img src={`${import.meta.env.BASE_URL}logo.png`} alt="ClimateShield" className="mr-2 h-12 w-12 object-contain mix-blend-multiply dark:mix-blend-screen" />
                     <span>ClimateShield</span>
                 </div>
                 <MainNav className="flex-1" />

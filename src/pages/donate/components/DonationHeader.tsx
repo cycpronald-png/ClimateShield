@@ -6,7 +6,7 @@ export function DonationHeader() {
             <div className="flex items-center gap-8">
                 <Link to="/" className="flex items-center gap-3 group">
                     <img
-                        src="/logo.png"
+                        src={`${import.meta.env.BASE_URL}logo.png`}
                         alt="ClimateShield logo"
                         className="size-12 object-contain mix-blend-multiply dark:mix-blend-screen"
                     />

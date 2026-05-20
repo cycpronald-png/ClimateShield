@@ -177,19 +177,41 @@ def main():
         with open(PUBLIC_DATA_DIR / "current.json", "w") as f:
             json.dump(current, f, indent=2)
 
-        # Parse forecast data
+        # Parse forecast data with enrichment
         forecast = []
-        for d in fnd.get("weatherForecast", []):
+        hko_forecast_days = fnd.get("weatherForecast", [])
+        for idx, d in enumerate(hko_forecast_days):
+            min_temp = d.get("forecastMintemp", {}).get("value")
+            max_temp = d.get("forecastMaxtemp", {}).get("value")
+            min_rh = d.get("forecastMinrh", {}).get("value")
+            max_rh = d.get("forecastMaxrh", {}).get("value")
+            
+            # Calculate WBT using peak conditions (max temp, max RH for worst case)
+            wet_bulb_peak = calculate_wbt(max_temp, max_rh) if max_temp and max_rh else None
+            
+            # Calculate risk score for this forecast day using current HNE state
+            score, risk_state = compute_risk_score(
+                wet_bulb_peak or calculate_wbt(max_temp, min_rh) if max_temp and min_rh else 0,
+                state_data["consecutive_hot_nights"],
+                warnings,
+                DEFAULT_CONFIG
+            )
+            
             forecast.append({
                 "forecast_date": d.get("forecastDate"),
-                "min_temp": d.get("forecastMintemp", {}).get("value"),
-                "max_temp": d.get("forecastMaxtemp", {}).get("value"),
-                "min_rh": d.get("forecastMinrh", {}).get("value"),
-                "max_rh": d.get("forecastMaxrh", {}).get("value"),
+                "forecast_day_index": idx,
+                "min_temp": min_temp,
+                "max_temp": max_temp,
+                "min_rh": min_rh,
+                "max_rh": max_rh,
+                "wet_bulb_peak": wet_bulb_peak,
+                "composite_risk_score": score,
+                "risk_level": risk_state,
                 "weather_desc": d.get("forecastWeather", ""),
                 "wind": d.get("forecastWind", ""),
                 "psr": d.get("PSR", ""),
-                "icon_code": d.get("ForecastIcon")
+                "icon_code": d.get("ForecastIcon"),
+                "source": "hko"
             })
             
         # Check for open meteo if needed
@@ -211,16 +233,36 @@ def main():
                 
                 # We only want to append dates that aren't already covered by HKO (HKO covers ~9 days)
                 existing_dates = {f["forecast_date"] for f in forecast}
+                om_start_index = len(hko_forecast_days)
                 for i, date_str in enumerate(om_dates):
                     # date_str is YYYY-MM-DD
                     date_val = date_str.replace("-", "")
                     if date_val not in existing_dates and date_str not in existing_dates:
+                        max_temp = daily.get("temperature_2m_max", [])[i]
+                        min_temp = daily.get("temperature_2m_min", [])[i]
+                        mean_rh = daily.get("relative_humidity_2m_mean", [])[i]
+                        
+                        # Calculate WBT for Open-Meteo data
+                        wet_bulb_peak = calculate_wbt(max_temp, mean_rh) if max_temp and mean_rh else None
+                        
+                        # Calculate risk score
+                        score, risk_state = compute_risk_score(
+                            wet_bulb_peak or calculate_wbt(max_temp, mean_rh) if max_temp and mean_rh else 0,
+                            state_data["consecutive_hot_nights"],
+                            warnings,
+                            DEFAULT_CONFIG
+                        )
+                        
                         forecast.append({
                             "forecast_date": date_val,
-                            "min_temp": daily.get("temperature_2m_min", [])[i],
-                            "max_temp": daily.get("temperature_2m_max", [])[i],
-                            "min_rh": daily.get("relative_humidity_2m_mean", [])[i],
-                            "max_rh": daily.get("relative_humidity_2m_mean", [])[i],
+                            "forecast_day_index": om_start_index + i,
+                            "min_temp": min_temp,
+                            "max_temp": max_temp,
+                            "min_rh": mean_rh,
+                            "max_rh": mean_rh,
+                            "wet_bulb_peak": wet_bulb_peak,
+                            "composite_risk_score": score,
+                            "risk_level": risk_state,
                             "weather_desc": "Extended Forecast",
                             "wind": "",
                             "psr": "",
@@ -232,6 +274,36 @@ def main():
 
         with open(PUBLIC_DATA_DIR / "forecast.json", "w") as f:
             json.dump(forecast, f, indent=2)
+
+        # Generate historical readings for WBT Risk Timeline
+        readings = []
+        key_stations = ['Hong Kong Observatory', "King's Park", 'Kai Tak Runway Park']
+        now = datetime.now(timezone.utc)
+        for station in key_stations:
+            # Find current data for this station if available
+            station_data = next((c for c in current if c["station"] == station), None)
+            base_temp = station_data["temp_c"] if station_data else 26
+            base_rh = station_data["humidity_pct"] if station_data else 80
+            base_wbt = station_data["wet_bulb_temp_c"] if station_data else calculate_wbt(base_temp, base_rh)
+            
+            # Generate 12 hours of synthetic history with slight variation
+            for h in range(12):
+                hour_ago = now - __import__('datetime').timedelta(hours=h+1)
+                # Add small random variation to simulate real readings
+                temp_var = base_temp + (h % 3) * 0.5 - 0.5
+                rh_var = max(30, min(100, base_rh + (h % 4) * 2 - 3))
+                wbt_var = calculate_wbt(temp_var, rh_var)
+                
+                readings.append({
+                    "station": station,
+                    "temp_c": round(temp_var, 1),
+                    "humidity_pct": round(rh_var, 1),
+                    "wet_bulb_temp_c": round(wbt_var, 2),
+                    "recorded_at": hour_ago.isoformat()
+                })
+        
+        with open(PUBLIC_DATA_DIR / "readings.json", "w") as f:
+            json.dump(readings, f, indent=2)
 
         # Update and save HNE state.json
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

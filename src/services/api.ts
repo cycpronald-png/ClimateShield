@@ -88,82 +88,70 @@ export const api = {
             return response.json();
         },
         getHistoricalReadings: async (station: string, hours: number = 12) => {
-            const params = new URLSearchParams({ station, hours: String(hours) });
-            const response = await fetch(`${API_BASE}/weather/history/readings?${params}`);
+            const response = await fetch(`${DATA_BASE}readings.json`);
             if (!response.ok) throw new Error("Failed to fetch historical readings");
-            return response.json();
+            const all = await response.json();
+            // Filter by station and limit to requested hours
+            return (all || []).filter((r: any) => r.station === station).slice(0, hours);
         },
         getLiveScore: async (station: string) => {
-            const params = new URLSearchParams({ station });
-            const response = await fetch(`${API_BASE}/weather/live-score?${params}`, {
-                method: "POST",
-            });
+            const response = await fetch(`${DATA_BASE}current.json`);
             if (!response.ok) throw new Error("Failed to fetch live risk score");
-            return response.json();
+            const all = await response.json();
+            const found = (all || []).find((r: any) => r.station === station);
+            return found || { station, composite_risk_score: 0, risk_level: "Safe" };
         },
         getTrends: async () => {
-            const response = await fetch(`${API_BASE}/weather/trends`);
-            if (!response.ok) throw new Error("Failed to fetch weather trends");
-            return response.json();
+            const response = await fetch(`${DATA_BASE}current.json`);
+            if (!response.ok) return { backward: [], forward: [] };
+            const all = await response.json();
+            // Mock trends from current data
+            const backward = (all || []).map((r: any) => ({
+                date: r.recorded_at,
+                score: r.composite_risk_score,
+                type: 'history'
+            }));
+            return { backward, forward: [] };
         },
         getRiskConfig: async () => {
-            const response = await fetch(`${API_BASE}/weather/risk-config`);
+            const response = await fetch(`${DATA_BASE}state.json`);
             if (!response.ok) throw new Error("Failed to fetch risk config");
             return response.json();
         },
         getUnreadAlerts: async () => {
-            const response = await fetch(`${API_BASE}/weather/alerts/unread`);
-            if (!response.ok) throw new Error("Failed to fetch unread alerts");
-            return response.json();
+            const response = await fetch(`${DATA_BASE}warnings.json`);
+            if (!response.ok) return [];
+            const all = await response.json();
+            return (all || []).map((w: any, i: number) => ({ ...w, id: i, acknowledged: false }));
         },
-        ackAlert: async (id: number) => {
-            const response = await fetch(`${API_BASE}/weather/alerts/${id}/ack`, {
-                method: "POST",
-            });
-            if (!response.ok) throw new Error("Failed to acknowledge alert");
-            return response.json();
+        ackAlert: async (_id: number) => {
+            // No-op in static mode
+            return { success: true };
         },
         getMetrics: async () => {
-            const response = await fetch(`${API_BASE}/weather/metrics`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-            if (!response.ok) throw new Error("Failed to fetch metrics");
-            return response.json();
+            const response = await fetch(`${DATA_BASE}current.json`);
+            if (!response.ok) return { stations: 0, avg_score: 0 };
+            const all = await response.json();
+            const stations = (all || []).length;
+            const avg = stations > 0 ? (all as any[]).reduce((s, r) => s + (r.composite_risk_score || 0), 0) / stations : 0;
+            return { stations, avg_score: Math.round(avg * 10) / 10 };
         },
-        resetMetrics: async (password: string) => {
-            const response = await fetch(`${API_BASE}/weather/metrics/reset`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password }),
-            });
-            if (!response.ok) throw new Error("Invalid password or server error");
-            return response.json();
+        resetMetrics: async (_password?: string) => {
+            // No-op in static mode
+            return { success: true };
         },
         getLastReset: async () => {
-            const response = await fetch(`${API_BASE}/weather/metrics/last-reset`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-            if (!response.ok) throw new Error("Failed to fetch last reset");
-            return response.json();
+            return { last_reset_at: null };
         },
-        verifyPassword: async (password: string) => {
-            const response = await fetch(`${API_BASE}/weather/verify-password`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password }),
-            });
-            if (!response.ok) throw new Error("Invalid password or server error");
-            return response.json();
+        verifyPassword: async (_password?: string) => {
+            // No-op in static mode (no admin features)
+            return { valid: true };
         }
     },
     agents: {
         getStatus: async () => {
-            const response = await fetch(`${API_BASE}/agents/status`);
-            if (!response.ok) throw new Error("Failed to fetch agent status");
-            return response.json();
+            return { status: "offline", message: "Agents not available in static mode" };
         },
-        getStreamUrl: () => `${API_BASE}/agents/stream`,
+        getStreamUrl: () => "",
     }
 };

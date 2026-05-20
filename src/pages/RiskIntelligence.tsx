@@ -49,8 +49,8 @@ export default function RiskIntelligence() {
         setIsOffline(false);
         try {
             const [currentData, forecastData, trendsData, riskCfg] = await Promise.all([
-                api.weather.getCurrent(),
-                api.weather.getForecast(),
+                api.weather.getCurrent().catch(() => []),
+                api.weather.getForecast().catch(() => []),
                 api.weather.getTrends().catch(() => ({ backward: [], forward: [] })),
                 api.weather.getRiskConfig().catch(() => null),
             ]);
