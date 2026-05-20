@@ -100,16 +100,18 @@ export const api = {
             if (!response.ok) throw new Error("Failed to fetch live risk score");
             const all = await response.json();
             const found = (all || []).find((r: any) => r.station === station);
-            return found || {
+            // Always return LiveScoreData shape
+            const score = found?.composite_risk_score ?? 0;
+            return {
                 station,
-                value: 0,
-                state: "Safe",
+                value: score,
+                state: found?.risk_level || "Safe",
                 w: 0, h: 0, v: 0, m: 1,
                 breakdown: "",
                 theoretical_max: 30,
                 warnings_active: [],
                 hot_nights_consecutive: 0,
-                wet_bulb_temp_c: 0
+                wet_bulb_temp_c: found?.wet_bulb_temp_c ?? 0
             };
         },
         getTrends: async () => {
