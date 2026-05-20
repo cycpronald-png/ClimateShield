@@ -51,28 +51,27 @@ export function useControlPlaneData() {
                 }
             }
 
-            const enriched = stations.map((r: any) => {
+            const enriched = await Promise.all(stations.map(async (r: any) => {
                 const wbt = r.wet_bulb_temp_c ?? 0;
                 const temp = r.temp_c ?? 0;
                 const rh = r.humidity_pct ?? 0;
                 const hne = r.hne ?? null;
 
-                // Composite score sync calculation (matches backend logic)
-                let baseScore = 0;
-                if (wbt < 28) baseScore = (wbt / 28) * 20;
-                else if (wbt <= 29) baseScore = 20 + ((wbt - 28) / 1) * 20;
-                else if (wbt <= 31.5) baseScore = 40 + ((wbt - 29) / 2.5) * 30;
-                else if (wbt <= 35) baseScore = 70 + ((wbt - 31.5) / 3.5) * 20;
-                else baseScore = 90 + Math.min(10, (wbt - 35) * 3);
+                // Fetch the live score dynamically using getLiveScore
+                const liveScoreData = await api.weather.getLiveScore(r.station).catch(() => ({
+                    value: r.composite_risk_score ?? 0,
+                    state: r.risk_level || "Safe",
+                    breakdown: ""
+                }));
 
-                const rhBonus = rh > 85 ? 10 : 0;
-                const hneBonus = (hne !== null && hne >= 17.7) ? 10 : 0;
-                const compositeScore = Math.min(100, Math.round(baseScore + rhBonus + hneBonus));
+                const compositeScore = liveScoreData.value;
+                const stateName = liveScoreData.state;
 
                 let riskLevel: District['riskLevel'] = 'low';
-                if (compositeScore >= 90) riskLevel = 'critical';
-                else if (compositeScore >= 70) riskLevel = 'high';
-                else if (compositeScore >= 40) riskLevel = 'moderate';
+                if (stateName === 'Purple') riskLevel = 'critical';
+                else if (stateName === 'Red') riskLevel = 'high';
+                else if (stateName === 'Yellow') riskLevel = 'moderate';
+                else riskLevel = 'low'; // Safe or Low
 
                 const id = r.station || r.id || `station-${Math.random().toString(36).substr(2, 9)}`;
                 const prevHne = prevHneRef.current[id] ?? null;
@@ -86,8 +85,8 @@ export function useControlPlaneData() {
 
                 // Generate synthetic history from current reading
                 const history = Array.from({ length: 7 }, (_, i) => {
-                    const variation = Math.sin(i) * 5;
-                    return Math.max(0, Math.min(100, compositeScore + variation));
+                    const variation = Math.sin(i) * 1.5;
+                    return Math.max(0, Math.min(30, compositeScore + variation));
                 });
 
                 return {
@@ -96,13 +95,13 @@ export function useControlPlaneData() {
                     riskScore: compositeScore,
                     riskLevel,
                     trend: 'stable' as const,
-                    primaryDriver: wbt > 31.5 ? `Wet-Bulb ${wbt.toFixed(1)}°C` : `Temp ${temp}°C / RH ${rh}%`,
+                    primaryDriver: liveScoreData.breakdown || (wbt > 31.5 ? `Wet-Bulb ${wbt.toFixed(1)}°C` : `Temp ${temp}°C / RH ${rh}%`),
                     lastUpdated: r.recorded_at || new Date().toISOString(),
                     history,
                     hne,
                     hneTrend,
                 };
-            });
+            }));
 
             setDistricts(enriched);
             write("control_plane", enriched);

@@ -105,10 +105,13 @@ export function RiskFormulaPanel() {
   }, [authenticated, loadConfig]);
 
   const handleAuthenticate = async () => {
+    if (password !== "Climate012220ShielD") {
+      toast.error('Invalid password');
+      return;
+    }
     setLoading(true);
     try {
-      // Authenticate with hardcoded password for static mode
-      const data = await api.admin.getRiskConfig("Climate012220ShielD");
+      const data = await api.admin.getRiskConfig(password);
       setConfig(data);
       setOriginalConfig(data);
       setHasChanges(false);

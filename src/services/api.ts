@@ -1,64 +1,223 @@
-const API_BASE = "/api";
 const DATA_BASE = import.meta.env.BASE_URL + 'data/';
+
+// Client-side WBT calculator
+function calculateWbt(t_air_c: number, rh_percent: number, p_station_hpa: number = 1013.25): number {
+    if (t_air_c === undefined || rh_percent === undefined) return 0;
+    const T = t_air_c;
+    const RH = rh_percent;
+    const P = p_station_hpa;
+    const e_s = 6.112 * Math.exp((17.67 * T) / (T + 243.5));
+    const e = (RH / 100.0) * e_s;
+    const gamma = 0.00066 * P;
+    let Tw = T;
+    for (let i = 0; i < 15; i++) {
+        const e_w = 6.112 * Math.exp((17.67 * Tw) / (Tw + 243.5));
+        const de_w_dTw = e_w * (17.67 * 243.5) / Math.pow(Tw + 243.5, 2);
+        const f = e_w - gamma * (T - Tw) - e;
+        const df_dTw = de_w_dTw + gamma;
+        Tw = Tw - f / df_dTw;
+    }
+    return Number(Tw.toFixed(2));
+}
+
+// Client-side risk scoring calculator matching backend compute_risk_score + 2x amplification
+function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: any[], config: any) {
+    // Step 1: W from wet-bulb temperature
+    let w = 0;
+    const wbtThresholds = config.wbt_thresholds || [];
+    for (const band of wbtThresholds) {
+        let inBand = true;
+        if (band.min_temp !== undefined && wbt < band.min_temp) inBand = false;
+        if (band.max_temp !== undefined && wbt > band.max_temp) inBand = false;
+        if (inBand) { w = Number(band.score); }
+    }
+    
+    // Step 2: H from consecutive hot nights
+    let h = 0;
+    const hneThresholds = config.hne_thresholds || [];
+    for (const band of hneThresholds) {
+        let inBand = true;
+        if (band.min_nights !== undefined && consecutive < band.min_nights) inBand = false;
+        if (band.max_nights !== undefined && consecutive > band.max_nights) inBand = false;
+        if (inBand) { h = Number(band.score); }
+    }
+    
+    // Step 3: V - vulnerability
+    const vuln = config.vulnerability_config || { trigger_h_score: 1, bonus: 5 };
+    const v = h >= vuln.trigger_h_score ? vuln.bonus : 0;
+    
+    // Step 4: M - warning multipliers
+    const multipliers = config.warning_multipliers || {};
+    let m = multipliers.none || 1.0;
+    if (activeWarnings && activeWarnings.length > 0) {
+        const warningSignals = activeWarnings.map(w => ({
+            type: String(w.warning_type || "").toLowerCase(),
+            signal: String(w.signal || "").toLowerCase()
+        }));
+        const priority = [
+            { key: "t8", check: (wt: string, sig: string) => wt.includes("signal no. 8") || wt.includes("gale or storm") || sig.includes("t8") },
+            { key: "black_rain", check: (wt: string, sig: string) => wt.includes("black rainstorm") || sig.includes("black") },
+            { key: "t3", check: (wt: string, sig: string) => wt.includes("signal no. 3") || wt.includes("strong wind") || sig.includes("t3") },
+            { key: "t1_or_red_rain", check: (wt: string, sig: string) => wt.includes("standby signal no. 1") || wt.includes("signal no. 1") || wt.includes("red rainstorm") || sig.includes("red") },
+            { key: "thunderstorm_or_amber_rain", check: (wt: string, sig: string) => wt.includes("thunderstorm") || wt.includes("amber rainstorm") || sig.includes("amber") }
+        ];
+        let found = false;
+        for (const p of priority) {
+            for (const ws of warningSignals) {
+                if (p.check(ws.type, ws.signal)) {
+                    m = multipliers[p.key] || m;
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+    }
+
+    // Step 5: Base
+    const base = w + h + v;
+    // 2x Risk Score Amplification
+    let rawScore = (base * m) * 2.0;
+
+    // Step 6: T8 floor rule
+    let t8Applied = false;
+    const t8 = config.t8_floor || { enabled: true, min_score: 27 };
+    if (t8.enabled && activeWarnings) {
+        for (const wItem of activeWarnings) {
+            const wt = String(wItem.warning_type || "").toLowerCase();
+            const sig = String(wItem.signal || "").toLowerCase();
+            if (wt.includes("signal no. 8") || wt.includes("gale or storm") || sig.includes("t8")) {
+                if (rawScore < t8.min_score) {
+                    rawScore = t8.min_score;
+                    t8Applied = true;
+                }
+                break;
+            }
+        }
+    }
+
+    // Step 7: Cap at 30
+    const riskScore = Math.min(30.0, rawScore);
+
+    // Step 8: Map to state
+    let state = "Safe";
+    const scoreRound = Math.round(riskScore);
+    const stateRanges = config.state_ranges || [];
+    const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
+    let foundState = false;
+    for (const pName of priorityOrder) {
+        for (const s of stateRanges) {
+            if (s.name === pName && scoreRound >= s.min && scoreRound <= s.max) {
+                state = s.name;
+                foundState = true;
+                break;
+            }
+        }
+        if (foundState) break;
+    }
+
+    return {
+        value: Number(riskScore.toFixed(1)),
+        state,
+        w, h, v, m,
+        t8_applied: t8Applied,
+        breakdown: `(${w} + ${h} + ${v}) × ${m} × 2.0 = ${(base * m * 2.0).toFixed(1)}` + (t8Applied ? " → T8 floor applied" : "")
+    };
+}
+
+// Increment localStorage counters for frontend calculations
+function incrementMetric(key: string) {
+    try {
+        const currentStr = localStorage.getItem("climateshield_metrics");
+        const current = currentStr ? JSON.parse(currentStr) : {
+            hko_fetches: 0,
+            weather_readings: 0,
+            wbt_calculations: 0,
+            risk_scores: 0,
+            alerts_generated: 0,
+            forecast_days: 0,
+            warnings: 0,
+            hne_checks: 0
+        };
+        current[key] = (current[key] || 0) + 1;
+        localStorage.setItem("climateshield_metrics", JSON.stringify(current));
+    } catch (e) {
+        console.warn("Failed to increment metric:", e);
+    }
+}
 
 export const api = {
     donate: {
         createPledge: async (data: any) => {
-            const response = await fetch(`${API_BASE}/donor/pledge`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) throw new Error("Failed to submit pledge");
-            return response.json();
+            try {
+                const currentStr = localStorage.getItem("climateshield_donations");
+                const current = currentStr ? JSON.parse(currentStr) : [];
+                current.push({ ...data, id: Date.now() });
+                localStorage.setItem("climateshield_donations", JSON.stringify(current));
+            } catch (e) {
+                console.warn(e);
+            }
+            return { success: true };
         },
     },
     admin: {
         getDonations: async () => {
-            const response = await fetch(`${API_BASE}/admin/donations`);
-            if (!response.ok) throw new Error("Failed to fetch donations");
-            return response.json();
+            try {
+                const donationsStr = localStorage.getItem("climateshield_donations");
+                if (donationsStr) return JSON.parse(donationsStr);
+            } catch {}
+            return [];
         },
         getRiskConfig: async (password: string) => {
-            const response = await fetch(`${API_BASE}/admin/risk-config`, {
-                headers: {
-                    "X-Admin-Password": password,
-                },
-            });
+            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
+            try {
+                const configStr = localStorage.getItem("climateshield_risk_config");
+                if (configStr) return JSON.parse(configStr);
+            } catch {}
+            // Fallback to fetch state.json
+            const response = await fetch(`${DATA_BASE}state.json`);
             if (!response.ok) throw new Error("Failed to fetch risk config");
-            return response.json();
+            const stateData = await response.json();
+            return {
+                wbt_thresholds: stateData.wbt_thresholds,
+                hne_thresholds: stateData.hne_thresholds,
+                vulnerability_config: stateData.vulnerability_config,
+                warning_multipliers: stateData.warning_multipliers,
+                t8_floor: stateData.t8_floor,
+                state_ranges: stateData.state_ranges
+            };
         },
         updateRiskConfig: async (password: string, config: any) => {
-            const response = await fetch(`${API_BASE}/admin/risk-config`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password, config }),
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.detail || "Failed to update risk config");
-            }
-            return response.json();
+            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
+            localStorage.setItem("climateshield_risk_config", JSON.stringify(config));
+            return { success: true, message: "Risk formula configuration updated" };
         },
         resetRiskConfig: async (password: string) => {
-            const response = await fetch(`${API_BASE}/admin/risk-config/reset`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password }),
-            });
-            if (!response.ok) throw new Error("Failed to reset risk config");
-            return response.json();
+            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
+            localStorage.removeItem("climateshield_risk_config");
+            return { success: true, message: "Risk formula configuration reset to default" };
         },
         testRiskConfig: async (password: string, config: any) => {
-            const response = await fetch(`${API_BASE}/admin/risk-config/test`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password, config }),
+            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
+            
+            // Run scenarios client-side
+            const scenarios = [
+                { wbt: 28.0, consecutive: 1, warnings: [], label: "Moderate heat, no warning" },
+                { wbt: 31.0, consecutive: 5, warnings: [{ warning_type: "Strong Wind Signal No. 3", signal: "T3" }], label: "Extreme heat + T3" },
+                { wbt: 29.0, consecutive: 2, warnings: [{ warning_type: "Gale or Storm Signal No. 8", signal: "T8" }], label: "T8 floor rule" },
+            ];
+            
+            const results = scenarios.map(s => {
+                const result = computeRiskScoreV2(s.wbt, s.consecutive, s.warnings, config);
+                return {
+                    label: s.label,
+                    inputs: { wbt: s.wbt, consecutive: s.consecutive, warnings: s.warnings },
+                    score: result.value,
+                    state: result.state,
+                    breakdown: result.breakdown,
+                };
             });
-            if (!response.ok) throw new Error("Failed to test risk config");
-            return response.json();
+            return { valid: true, scenarios: results };
         },
     },
     weather: {
@@ -73,7 +232,7 @@ export const api = {
             return response.json();
         },
         getRisks: async () => {
-            const response = await fetch(`${API_BASE}/weather/risks`);
+            const response = await fetch(`${DATA_BASE}current.json`);
             if (!response.ok) throw new Error("Failed to fetch risk outlook");
             return response.json();
         },
@@ -91,7 +250,6 @@ export const api = {
             const response = await fetch(`${DATA_BASE}readings.json`);
             if (!response.ok) throw new Error("Failed to fetch historical readings");
             const all = await response.json();
-            // Filter by station and limit to requested hours
             const filtered = (all || []).filter((r: any) => r.station === station).slice(0, hours);
             return { readings: filtered };
         },
@@ -100,25 +258,97 @@ export const api = {
             if (!response.ok) throw new Error("Failed to fetch live risk score");
             const all = await response.json();
             const found = (all || []).find((r: any) => r.station === station);
-            // Always return LiveScoreData shape
-            const score = found?.composite_risk_score ?? 0;
+            
+            // Get active risk config
+            let config = null;
+            try {
+                const configStr = localStorage.getItem("climateshield_risk_config");
+                if (configStr) config = JSON.parse(configStr);
+            } catch {}
+            
+            if (!config) {
+                const stateRes = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+                if (stateRes && stateRes.ok) {
+                    const stateData = await stateRes.json();
+                    config = {
+                        wbt_thresholds: stateData.wbt_thresholds,
+                        hne_thresholds: stateData.hne_thresholds,
+                        vulnerability_config: stateData.vulnerability_config,
+                        warning_multipliers: stateData.warning_multipliers,
+                        t8_floor: stateData.t8_floor,
+                        state_ranges: stateData.state_ranges
+                    };
+                }
+            }
+
+            if (!config) {
+                config = {
+                    wbt_thresholds: [
+                        { max_temp: 21.9, score: 0 },
+                        { min_temp: 22, max_temp: 23.9, score: 1 },
+                        { min_temp: 24, max_temp: 26.9, score: 2 },
+                        { min_temp: 27, max_temp: 29.9, score: 4 },
+                        { min_temp: 30, score: 6 },
+                    ],
+                    hne_thresholds: [
+                        { max_nights: 0, score: 0 },
+                        { min_nights: 1, max_nights: 1, score: 1 },
+                        { min_nights: 2, max_nights: 2, score: 2 },
+                        { min_nights: 3, max_nights: 4, score: 4 },
+                        { min_nights: 5, score: 6 },
+                    ],
+                    vulnerability_config: { trigger_h_score: 1, bonus: 5 },
+                    warning_multipliers: {
+                        none: 1.0,
+                        thunderstorm_or_amber_rain: 2.0,
+                        t1_or_red_rain: 1.5,
+                        t3: 1.5,
+                        black_rain: 2.0,
+                        t8: 3.0,
+                    },
+                    t8_floor: { enabled: true, min_score: 27 },
+                    state_ranges: [
+                        { name: 'Safe', min: 0, max: 12 },
+                        { name: 'Low', min: 13, max: 16 },
+                        { name: 'Yellow', min: 17, max: 22 },
+                        { name: 'Red', min: 23, max: 26 },
+                        { name: 'Purple', min: 25, max: 30 },
+                    ]
+                };
+            }
+
+            const warningsRes = await fetch(`${DATA_BASE}warnings.json`).catch(() => null);
+            const warnings = warningsRes && warningsRes.ok ? await warningsRes.json() : [];
+            
+            const stateRes2 = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+            const stateData2 = stateRes2 && stateRes2.ok ? await stateRes2.json() : {};
+            const consecutive = stateData2.consecutive_hot_nights || 0;
+
+            const wbt = found?.wet_bulb_temp_c ?? calculateWbt(found?.temp_c ?? 25, found?.humidity_pct ?? 80);
+            const result = computeRiskScoreV2(wbt, consecutive, warnings, config);
+            
+            incrementMetric("wbt_calculations");
+            incrementMetric("risk_scores");
+
             return {
                 station,
-                value: score,
-                state: found?.risk_level || "Safe",
-                w: 0, h: 0, v: 0, m: 1,
-                breakdown: "",
+                value: result.value,
+                state: result.state,
+                w: result.w,
+                h: result.h,
+                v: result.v,
+                m: result.m,
+                breakdown: result.breakdown,
                 theoretical_max: 30,
-                warnings_active: [],
-                hot_nights_consecutive: 0,
-                wet_bulb_temp_c: found?.wet_bulb_temp_c ?? 0
+                warnings_active: warnings.map((w: any) => w.warning_type),
+                hot_nights_consecutive: consecutive,
+                wet_bulb_temp_c: wbt
             };
         },
         getTrends: async () => {
             const response = await fetch(`${DATA_BASE}current.json`);
             if (!response.ok) return { backward: [], forward: [] };
             const all = await response.json();
-            // Mock trends from current data
             const backward = (all || []).map((r: any) => ({
                 date: r.recorded_at,
                 score: r.composite_risk_score,
@@ -138,32 +368,119 @@ export const api = {
             return (all || []).map((w: any, i: number) => ({ ...w, id: i, acknowledged: false }));
         },
         ackAlert: async (_id: number) => {
-            // No-op in static mode
             return { success: true };
         },
         getMetrics: async () => {
-            // Check if metrics were recently reset (client-side only)
+            let base = {
+                hko_fetches: 0,
+                weather_readings: 0,
+                wbt_calculations: 0,
+                risk_scores: 0,
+                alerts_generated: 0,
+                forecast_days: 0,
+                warnings: 0,
+                hne_checks: 0
+            };
             try {
-                const resetAt = localStorage.getItem("climateshield_metrics_reset");
-                if (resetAt) {
-                    // Clear the reset flag so next fetch shows live data again
-                    localStorage.removeItem("climateshield_metrics_reset");
-                    return { stations: 0, avg_score: 0 };
+                const response = await fetch(`${DATA_BASE}state.json`);
+                if (response.ok) {
+                    const stateData = await response.json();
+                    base = {
+                        hko_fetches: stateData.hko_fetches || 0,
+                        weather_readings: stateData.weather_readings || 0,
+                        wbt_calculations: stateData.wbt_calculations || 0,
+                        risk_scores: stateData.risk_scores || 0,
+                        alerts_generated: stateData.alerts_generated || 0,
+                        forecast_days: stateData.forecast_days || 0,
+                        warnings: stateData.warnings || 0,
+                        hne_checks: stateData.hne_checks || 0
+                    };
                 }
-            } catch { /* localStorage unavailable */ }
+            } catch (e) {}
 
-            const response = await fetch(`${DATA_BASE}current.json`);
-            if (!response.ok) return { stations: 0, avg_score: 0 };
-            const all = await response.json();
-            const stations = (all || []).length;
-            const avg = stations > 0 ? (all as any[]).reduce((s, r) => s + (r.composite_risk_score || 0), 0) / stations : 0;
-            return { stations, avg_score: Math.round(avg * 10) / 10 };
-        },
-        resetMetrics: async (_password?: string) => {
-            // Store reset timestamp in localStorage for client-side "reset" effect
+            let offsets = {
+                hko_fetches: 0,
+                weather_readings: 0,
+                wbt_calculations: 0,
+                risk_scores: 0,
+                alerts_generated: 0,
+                forecast_days: 0,
+                warnings: 0,
+                hne_checks: 0
+            };
             try {
+                const offsetsStr = localStorage.getItem("climateshield_metrics_offsets");
+                if (offsetsStr) {
+                    offsets = JSON.parse(offsetsStr);
+                }
+            } catch (e) {}
+
+            let localAdditions = {
+                hko_fetches: 0,
+                weather_readings: 0,
+                wbt_calculations: 0,
+                risk_scores: 0,
+                alerts_generated: 0,
+                forecast_days: 0,
+                warnings: 0,
+                hne_checks: 0
+            };
+            try {
+                const localStr = localStorage.getItem("climateshield_metrics");
+                if (localStr) {
+                    localAdditions = JSON.parse(localStr);
+                }
+            } catch (e) {}
+
+            const displayed = {
+                hko_fetches: Math.max(0, base.hko_fetches - offsets.hko_fetches) + localAdditions.hko_fetches,
+                weather_readings: Math.max(0, base.weather_readings - offsets.weather_readings) + localAdditions.weather_readings,
+                wbt_calculations: Math.max(0, base.wbt_calculations - offsets.wbt_calculations) + localAdditions.wbt_calculations,
+                risk_scores: Math.max(0, base.risk_scores - offsets.risk_scores) + localAdditions.risk_scores,
+                alerts_generated: Math.max(0, base.alerts_generated - offsets.alerts_generated) + localAdditions.alerts_generated,
+                forecast_days: Math.max(0, base.forecast_days - offsets.forecast_days) + localAdditions.forecast_days,
+                warnings: Math.max(0, base.warnings - offsets.warnings) + localAdditions.warnings,
+                hne_checks: Math.max(0, base.hne_checks - offsets.hne_checks) + localAdditions.hne_checks,
+            };
+
+            return displayed;
+        },
+        resetMetrics: async (password?: string) => {
+            if (password !== "Climate012220ShielD") {
+                throw new Error("Invalid password");
+            }
+            try {
+                const response = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+                if (response && response.ok) {
+                    const stateData = await response.json();
+                    localStorage.setItem("climateshield_metrics_offsets", JSON.stringify({
+                        hko_fetches: stateData.hko_fetches || 0,
+                        weather_readings: stateData.weather_readings || 0,
+                        wbt_calculations: stateData.wbt_calculations || 0,
+                        risk_scores: stateData.risk_scores || 0,
+                        alerts_generated: stateData.alerts_generated || 0,
+                        forecast_days: stateData.forecast_days || 0,
+                        warnings: stateData.warnings || 0,
+                        hne_checks: stateData.hne_checks || 0
+                    }));
+                } else {
+                    const cur = localStorage.getItem("climateshield_metrics");
+                    if (cur) localStorage.setItem("climateshield_metrics_offsets", cur);
+                }
                 localStorage.setItem("climateshield_metrics_reset", new Date().toISOString());
-            } catch { /* localStorage unavailable */ }
+                localStorage.setItem("climateshield_metrics", JSON.stringify({
+                    hko_fetches: 0,
+                    weather_readings: 0,
+                    wbt_calculations: 0,
+                    risk_scores: 0,
+                    alerts_generated: 0,
+                    forecast_days: 0,
+                    warnings: 0,
+                    hne_checks: 0
+                }));
+            } catch (e) {
+                console.warn(e);
+            }
             return { success: true };
         },
         getLastReset: async () => {
@@ -174,9 +491,11 @@ export const api = {
                 return { last_reset_at: null };
             }
         },
-        verifyPassword: async (_password?: string) => {
-            // No-op in static mode (no admin features)
-            return { valid: true };
+        verifyPassword: async (password?: string) => {
+            if (password === "Climate012220ShielD") {
+                return { valid: true };
+            }
+            throw new Error("Invalid password");
         }
     },
     agents: {
