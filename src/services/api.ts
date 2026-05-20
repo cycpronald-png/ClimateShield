@@ -142,6 +142,16 @@ export const api = {
             return { success: true };
         },
         getMetrics: async () => {
+            // Check if metrics were recently reset (client-side only)
+            try {
+                const resetAt = localStorage.getItem("climateshield_metrics_reset");
+                if (resetAt) {
+                    // Clear the reset flag so next fetch shows live data again
+                    localStorage.removeItem("climateshield_metrics_reset");
+                    return { stations: 0, avg_score: 0 };
+                }
+            } catch { /* localStorage unavailable */ }
+
             const response = await fetch(`${DATA_BASE}current.json`);
             if (!response.ok) return { stations: 0, avg_score: 0 };
             const all = await response.json();
@@ -150,11 +160,19 @@ export const api = {
             return { stations, avg_score: Math.round(avg * 10) / 10 };
         },
         resetMetrics: async (_password?: string) => {
-            // No-op in static mode
+            // Store reset timestamp in localStorage for client-side "reset" effect
+            try {
+                localStorage.setItem("climateshield_metrics_reset", new Date().toISOString());
+            } catch { /* localStorage unavailable */ }
             return { success: true };
         },
         getLastReset: async () => {
-            return { last_reset_at: null };
+            try {
+                const resetAt = localStorage.getItem("climateshield_metrics_reset");
+                return { last_reset_at: resetAt };
+            } catch {
+                return { last_reset_at: null };
+            }
         },
         verifyPassword: async (_password?: string) => {
             // No-op in static mode (no admin features)
