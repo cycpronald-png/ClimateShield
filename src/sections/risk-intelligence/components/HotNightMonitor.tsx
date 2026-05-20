@@ -13,7 +13,7 @@ export function HotNightMonitor() {
         let mounted = true;
         async function load() {
             try {
-                const data = await api.weather.getHistory(7);
+                const data = await api.weather.getHistory();
                 if (!mounted) return;
                 const items: WeatherHistoryItem[] = data.history || [];
                 const mapped = items.map((h: any) => ({

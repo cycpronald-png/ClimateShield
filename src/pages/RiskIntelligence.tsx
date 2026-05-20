@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
-import { useLastRefresh } from '@/hooks/useLastRefresh';
-import { LastRefreshDisplay } from '@/components/control-plane/LastRefreshDisplay';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useRetry } from '@/context/RetryContext';
 import type { WeatherReading, WeatherForecastDay, TrendPoint } from '@/sections/risk-intelligence/types';
@@ -17,13 +15,11 @@ import { StationDataTable } from '@/sections/risk-intelligence/components/Statio
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WarningsCard } from '@/sections/risk-intelligence/components/WarningsCard';
-import { AlertTriangle, RefreshCw, Info, UploadCloud } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertTriangle, RefreshCw, Info,  } from 'lucide-react';
 
 export default function RiskIntelligence() {
     const { read, write } = useOfflineCache();
     const { retryKey, triggerRetry } = useRetry();
-    const { lastRefresh, isStale, loading: lrLoading, error: lrError } = useLastRefresh();
     const [readings, setReadings] = useState<WeatherReading[]>(() => read<WeatherReading[]>("risk_intelligence")?.data ?? []);
     const [forecast, setForecast] = useState<WeatherForecastDay[]>([]);
     const [trends, setTrends] = useState<TrendPoint[]>([]);
@@ -38,7 +34,6 @@ export default function RiskIntelligence() {
     const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<number | null>(
         () => read<WeatherReading[]>("risk_intelligence")?.timestamp ?? null
     );
-    const [refreshing, setRefreshing] = useState(false);
     // Open-Meteo beta flag for extended 14-day forecast (shared with Settings page)
     const [openMeteoBeta] = useState<boolean>(() => {
         try {
@@ -48,19 +43,6 @@ export default function RiskIntelligence() {
         }
     });
 
-    const handleRefreshHKO = async () => {
-        setRefreshing(true);
-        try {
-            const result = await api.weather.refresh();
-            toast.success(result.message || "HKO data refreshed successfully");
-            await fetchAll();
-        } catch (e) {
-            toast.error("Failed to refresh HKO data. Please try again.");
-        } finally {
-            setRefreshing(false);
-        }
-    };
-
     const fetchAll = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -68,7 +50,7 @@ export default function RiskIntelligence() {
         try {
             const [currentData, forecastData, trendsData, riskCfg] = await Promise.all([
                 api.weather.getCurrent(),
-                api.weather.getForecast(openMeteoBeta),
+                api.weather.getForecast(),
                 api.weather.getTrends().catch(() => ({ backward: [], forward: [] })),
                 api.weather.getRiskConfig().catch(() => null),
             ]);
@@ -127,24 +109,6 @@ export default function RiskIntelligence() {
                     <p className="text-muted-foreground mt-2">
                         Live HKO weather data, wet-bulb analysis, and AI-enhanced risk forecasting powered by ClimateShield.
                     </p>
-                </div>
-                <div className="flex flex-col items-end shrink-0">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefreshHKO}
-                        disabled={refreshing}
-                        className="shrink-0"
-                    >
-                        <UploadCloud className="w-4 h-4 mr-1" />
-                        {refreshing ? 'Refreshing…' : 'Refresh from HKO'}
-                    </Button>
-                    <LastRefreshDisplay
-                        lastRefresh={lastRefresh}
-                        isStale={isStale}
-                        loading={lrLoading}
-                        error={lrError}
-                    />
                 </div>
             </div>
 

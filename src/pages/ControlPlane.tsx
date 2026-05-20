@@ -6,28 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { api } from '@/services/api';
-import { useLastRefresh } from '@/hooks/useLastRefresh';
-import { LastRefreshDisplay } from '@/components/control-plane/LastRefreshDisplay';
 import { WarningsCard } from '@/sections/risk-intelligence/components/WarningsCard';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useRetry } from '@/context/RetryContext';
 
 export default function ControlPlane() {
     const { districts, activeWarnings, loading, error, isOffline, lastSuccessfulFetch, refetch } = useControlPlaneData();
-    const { lastRefresh, isStale, loading: lrLoading, error: lrError, refetch: refetchLastRefresh } = useLastRefresh();
     const { triggerRetry } = useRetry();
 
     const handleRefresh = async () => {
         try {
-            const result = await api.weather.refresh();
-            if (result.warning) {
-                toast.warning(result.warning);
-            } else {
-                toast.success("HKO data refreshed");
-            }
             refetch();
-            await refetchLastRefresh();
+            toast.success("Refreshed");
         } catch (e) {
             toast.error("Refresh failed");
         }
@@ -48,14 +38,8 @@ export default function ControlPlane() {
                 <div className="flex flex-col items-end">
                     <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
                         <RefreshCw className="w-4 h-4" />
-                        Refresh from HKO
+                        Refresh
                     </Button>
-                    <LastRefreshDisplay
-                        lastRefresh={lastRefresh}
-                        isStale={isStale}
-                        loading={lrLoading}
-                        error={lrError}
-                    />
                 </div>
             </div>
 

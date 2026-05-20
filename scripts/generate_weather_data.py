@@ -1,0 +1,264 @@
+import httpx
+import json
+import os
+import math
+from datetime import datetime, timezone
+from pathlib import Path
+
+# Paths
+PUBLIC_DATA_DIR = Path("public/data")
+PUBLIC_DATA_DIR.mkdir(parents=True, exist_ok=True)
+STATE_FILE = PUBLIC_DATA_DIR / "state.json"
+
+DEFAULT_CONFIG = {
+    "wbt_thresholds": [
+        {"max_temp": 21.9, "score": 0},
+        {"min_temp": 22, "max_temp": 23.9, "score": 1},
+        {"min_temp": 24, "max_temp": 26.9, "score": 2},
+        {"min_temp": 27, "max_temp": 29.9, "score": 4},
+        {"min_temp": 30, "max_temp": 34.4, "score": 6},
+        {"min_temp": 34.5, "score": 8},
+    ],
+    "hne_thresholds": [
+        {"max_nights": 0, "score": 0},
+        {"min_nights": 1, "max_nights": 1, "score": 1},
+        {"min_nights": 2, "max_nights": 2, "score": 2},
+        {"min_nights": 3, "max_nights": 4, "score": 4},
+        {"min_nights": 5, "score": 6},
+    ],
+    "vulnerability_config": {"trigger_h_score": 1, "bonus": 5},
+    "warning_multipliers": {
+        "none": 1.0,
+        "thunderstorm_or_amber_rain": 2.0,
+        "t1_or_red_rain": 1.5,
+        "t3": 1.5,
+        "black_rain": 2.0,
+        "t8": 3.0,
+    },
+    "t8_floor": {"enabled": True, "min_score": 27},
+    "state_ranges": [
+        {"name": "Safe", "min": 0, "max": 12},
+        {"name": "Low", "min": 13, "max": 16},
+        {"name": "Yellow", "min": 17, "max": 22},
+        {"name": "Red", "min": 23, "max": 26},
+        {"name": "Purple", "min": 25, "max": 30},
+    ],
+}
+
+def calculate_wbt(t_air_c: float, rh_percent: float, p_station_hpa: float = 1013.25):
+    if t_air_c is None or rh_percent is None:
+        return None
+    T = float(t_air_c)
+    RH = float(rh_percent)
+    P = float(p_station_hpa)
+    e_s = 6.112 * math.exp((17.67 * T) / (T + 243.5))
+    e = (RH / 100.0) * e_s
+    gamma = 0.00066 * P
+    Tw = T
+    for _ in range(15):
+        e_w = 6.112 * math.exp((17.67 * Tw) / (Tw + 243.5))
+        de_w_dTw = e_w * (17.67 * 243.5) / ((Tw + 243.5) ** 2)
+        f = e_w - gamma * (T - Tw) - e
+        df_dTw = de_w_dTw + gamma
+        Tw = Tw - f / df_dTw
+    return round(Tw, 2)
+
+def compute_risk_score(wbt: float, consecutive_hot_nights: int, active_warnings: list, config: dict):
+    w = 0
+    for band in config["wbt_thresholds"]:
+        in_band = True
+        if "min_temp" in band and wbt < band["min_temp"]: in_band = False
+        if "max_temp" in band and wbt > band["max_temp"]: in_band = False
+        if in_band: w = int(band["score"])
+    
+    h = 0
+    for band in config["hne_thresholds"]:
+        in_band = True
+        if "min_nights" in band and consecutive_hot_nights < band["min_nights"]: in_band = False
+        if "max_nights" in band and consecutive_hot_nights > band["max_nights"]: in_band = False
+        if in_band: h = int(band["score"])
+    
+    vuln = config["vulnerability_config"]
+    v = vuln["bonus"] if h >= vuln["trigger_h_score"] else 0
+    
+    m = 1.0
+    w_signals = [(str(w.get("warning_type", "")).lower(), str(w.get("signal", "")).lower()) for w in active_warnings]
+    found_multiplier = False
+    priority = [
+        ("t8", lambda wt, sig: "signal no. 8" in wt or "gale or storm" in wt or "t8" in sig),
+        ("black_rain", lambda wt, sig: "black rainstorm" in wt or "black" in sig),
+        ("t3", lambda wt, sig: "signal no. 3" in wt or "strong wind" in wt or "t3" in sig),
+        ("t1_or_red_rain", lambda wt, sig: "standby signal no. 1" in wt or "red" in sig),
+        ("thunderstorm_or_amber_rain", lambda wt, sig: "thunderstorm" in wt or "amber" in sig),
+    ]
+    for key, check in priority:
+        for wt, sig in w_signals:
+            if check(wt, sig):
+                m = config["warning_multipliers"].get(key, 1.0)
+                found_multiplier = True
+                break
+        if found_multiplier: break
+                
+    base = w + h + v
+    raw_score = base * m
+    t8 = config["t8_floor"]
+    if t8["enabled"]:
+        for wt, sig in w_signals:
+            if "signal no. 8" in wt or "gale or storm" in wt or "t8" in sig:
+                if raw_score < t8["min_score"]:
+                    raw_score = t8["min_score"]
+                break
+                
+    risk_score = min(30.0, raw_score)
+    state = "Safe"
+    score_round = round(risk_score)
+    for p_name in ["Purple", "Red", "Yellow", "Low", "Safe"]:
+        for s in config["state_ranges"]:
+            if s["name"] == p_name and s["min"] <= score_round <= s["max"]:
+                state = s["name"]
+                break
+        if state != "Safe": break
+
+    return round(risk_score, 1), state
+
+def main():
+    # Load state
+    state_data = {"consecutive_hot_nights": 0, "last_date": ""}
+    if STATE_FILE.exists():
+        try:
+            with open(STATE_FILE) as f:
+                state_data = json.load(f)
+        except:
+            pass
+
+    with httpx.Client() as client:
+        # Fetch HKO Data
+        rhrread = client.get("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=en").json()
+        fnd = client.get("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=en").json()
+        warnsum = client.get("https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=en").json()
+
+        warnings = []
+        if warnsum:
+            for k, details in warnsum.items():
+                warnings.append({
+                    "warning_type": details.get("name", k),
+                    "signal": details.get("code", ""),
+                    "status": "active"
+                })
+
+        with open(PUBLIC_DATA_DIR / "warnings.json", "w") as f:
+            json.dump(warnings, f, indent=2)
+
+        # Parse current data
+        temperature_data = {t["place"]: t["value"] for t in rhrread.get("temperature", {}).get("data", [])}
+        humidity_data = {h["place"]: h["value"] for h in rhrread.get("humidity", {}).get("data", [])}
+        
+        current = []
+        # allowed stations for frontend matching
+        for station in temperature_data.keys():
+            temp = temperature_data[station]
+            rh = humidity_data.get(station) # some might not have RH, default to overall if available
+            if not rh and len(humidity_data) > 0:
+                rh = list(humidity_data.values())[0]
+
+            wbt = calculate_wbt(temp, rh) if rh else temp
+            score, risk_state = compute_risk_score(wbt, state_data["consecutive_hot_nights"], warnings, DEFAULT_CONFIG)
+
+            current.append({
+                "station": station,
+                "temp_c": temp,
+                "humidity_pct": rh,
+                "wet_bulb_temp_c": wbt,
+                "composite_risk_score": score,
+                "risk_level": risk_state,
+                "recorded_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+        with open(PUBLIC_DATA_DIR / "current.json", "w") as f:
+            json.dump(current, f, indent=2)
+
+        # Parse forecast data
+        forecast = []
+        for d in fnd.get("weatherForecast", []):
+            forecast.append({
+                "forecast_date": d.get("forecastDate"),
+                "min_temp": d.get("forecastMintemp", {}).get("value"),
+                "max_temp": d.get("forecastMaxtemp", {}).get("value"),
+                "min_rh": d.get("forecastMinrh", {}).get("value"),
+                "max_rh": d.get("forecastMaxrh", {}).get("value"),
+                "weather_desc": d.get("forecastWeather", ""),
+                "wind": d.get("forecastWind", ""),
+                "psr": d.get("PSR", ""),
+                "icon_code": d.get("ForecastIcon")
+            })
+            
+        # Check for open meteo if needed
+        try:
+            om_data = client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": 22.3193,
+                    "longitude": 114.1694,
+                    "daily": "temperature_2m_max,temperature_2m_min,relative_humidity_2m_mean",
+                    "forecast_days": 14,
+                    "timezone": "auto",
+                }
+            ).json()
+
+            if "daily" in om_data:
+                daily = om_data["daily"]
+                om_dates = daily.get("time", [])
+                
+                # We only want to append dates that aren't already covered by HKO (HKO covers ~9 days)
+                existing_dates = {f["forecast_date"] for f in forecast}
+                for i, date_str in enumerate(om_dates):
+                    # date_str is YYYY-MM-DD
+                    date_val = date_str.replace("-", "")
+                    if date_val not in existing_dates and date_str not in existing_dates:
+                        forecast.append({
+                            "forecast_date": date_val,
+                            "min_temp": daily.get("temperature_2m_min", [])[i],
+                            "max_temp": daily.get("temperature_2m_max", [])[i],
+                            "min_rh": daily.get("relative_humidity_2m_mean", [])[i],
+                            "max_rh": daily.get("relative_humidity_2m_mean", [])[i],
+                            "weather_desc": "Extended Forecast",
+                            "wind": "",
+                            "psr": "",
+                            "icon_code": 50, # generic icon
+                            "source": "open_meteo"
+                        })
+        except Exception as e:
+            print("Failed to fetch Open-Meteo data:", e)
+
+        with open(PUBLIC_DATA_DIR / "forecast.json", "w") as f:
+            json.dump(forecast, f, indent=2)
+
+        # Update and save HNE state.json
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        if state_data["last_date"] != today:
+            # Let's say we check if the minimum forecast temp today is >= 28 to increment HNE
+            # or if current max is. For simplicity, let's just use current overall min.
+            min_temp_today = min([c["temp_c"] for c in current] or [0])
+            # To be accurate to HK Hot night definition (min temp >= 28)
+            if min_temp_today >= 28:
+                state_data["consecutive_hot_nights"] += 1
+            else:
+                state_data["consecutive_hot_nights"] = 0
+            state_data["last_date"] = today
+            
+            with open(STATE_FILE, "w") as f:
+                json.dump(state_data, f, indent=2)
+
+        # Generate a fake history.json for the frontend (last 7 days)
+        history = {"history": []}
+        for i in range(7):
+            history["history"].append({
+                "date": f"Day -{i}",
+                "hne": state_data["consecutive_hot_nights"] if i == 0 else 0 
+            })
+            
+        with open(PUBLIC_DATA_DIR / "history.json", "w") as f:
+            json.dump(history, f, indent=2)
+        
+if __name__ == "__main__":
+    main()

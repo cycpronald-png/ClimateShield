@@ -40,7 +40,6 @@ export function useControlPlaneData() {
             if (stations.length === 0 && allowRefresh && !attemptedRefresh.current) {
                 attemptedRefresh.current = true;
                 try {
-                    await api.weather.refresh();
                     // Wait a moment for DB to persist, then re-fetch without allowing another refresh
                     await new Promise(r => setTimeout(r, 1500));
                     await fetchData(false);

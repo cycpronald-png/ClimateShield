@@ -25,12 +25,11 @@ export function StationDetailModal({ open, station, onClose }: StationDetailModa
     // Fetch history when modal opens with a valid station
     useEffect(() => {
         if (!open || !station) return;
-        const stationName = station.station;
         let mounted = true;
         async function load() {
             setLoading(true);
             try {
-                const data = await api.weather.getHistory(7, stationName);
+                const data = await api.weather.getHistory();
                 if (!mounted) return;
                 const items: WeatherHistoryItem[] = data.history || [];
                 setHistory(items);

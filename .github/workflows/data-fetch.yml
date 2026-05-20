@@ -1,0 +1,37 @@
+name: Fetch Weather Data
+
+on:
+  schedule:
+    - cron: '0 */8 * * *'  # Runs exactly 3 times a day (every 8 hours)
+  workflow_dispatch:      # Allows manual trigger for testing
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install httpx
+
+      - name: Generate static weather data
+        run: |
+          python scripts/generate_weather_data.py
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(data): auto-update static weather data"
+          file_pattern: public/data/*.json
+          branch: main

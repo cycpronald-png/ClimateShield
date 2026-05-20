@@ -1,4 +1,5 @@
 const API_BASE = "/api";
+const DATA_BASE = import.meta.env.BASE_URL + 'data/';
 
 export const api = {
     donate: {
@@ -62,15 +63,12 @@ export const api = {
     },
     weather: {
         getCurrent: async () => {
-            const response = await fetch(`${API_BASE}/weather/current`);
+            const response = await fetch(`${DATA_BASE}current.json`);
             if (!response.ok) throw new Error("Failed to fetch current weather");
             return response.json();
         },
-        getForecast: async (beta14day: boolean = false) => {
-            const params = new URLSearchParams();
-            if (beta14day) params.set("beta_14day", "true");
-            const query = params.toString();
-            const response = await fetch(`${API_BASE}/weather/forecast${query ? `?${query}` : ''}`);
+        getForecast: async () => {
+            const response = await fetch(`${DATA_BASE}forecast.json`);
             if (!response.ok) throw new Error("Failed to fetch forecast");
             return response.json();
         },
@@ -80,15 +78,12 @@ export const api = {
             return response.json();
         },
         getWarnings: async () => {
-            const response = await fetch(`${API_BASE}/weather/warnings`);
+            const response = await fetch(`${DATA_BASE}warnings.json`);
             if (!response.ok) throw new Error("Failed to fetch warnings");
             return response.json();
         },
-        getHistory: async (days: number = 7, station?: string, beta14day: boolean = false) => {
-            const params = new URLSearchParams({ days: String(days) });
-            if (station) params.set("station", station);
-            if (beta14day) params.set("beta_14day", "true");
-            const response = await fetch(`${API_BASE}/weather/history?${params}`);
+        getHistory: async () => {
+            const response = await fetch(`${DATA_BASE}history.json`);
             if (!response.ok) throw new Error("Failed to fetch weather history");
             return response.json();
         },
@@ -128,13 +123,6 @@ export const api = {
             if (!response.ok) throw new Error("Failed to acknowledge alert");
             return response.json();
         },
-        refresh: async () => {
-            const response = await fetch(`${API_BASE}/weather/refresh`, {
-                method: "POST",
-            });
-            if (!response.ok) throw new Error("Failed to refresh HKO data");
-            return response.json();
-        },
         getMetrics: async () => {
             const response = await fetch(`${API_BASE}/weather/metrics`, {
                 method: "POST",
@@ -168,12 +156,7 @@ export const api = {
             });
             if (!response.ok) throw new Error("Invalid password or server error");
             return response.json();
-        },
-        getLastRefresh: async () => {
-            const response = await fetch(`${API_BASE}/weather/last-refresh`);
-            if (!response.ok) throw new Error("Failed to fetch last refresh timestamp");
-            return response.json();
-        },
+        }
     },
     agents: {
         getStatus: async () => {
