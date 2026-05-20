@@ -90,6 +90,10 @@ export default function Settings() {
     };
 
     const handleConfirmClearCache = async () => {
+        if (clearCachePassword.trim() !== "Climate012220ShielD") {
+            toast.error("Invalid password");
+            return;
+        }
         setClearCacheLoading(true);
         try {
             await api.weather.verifyPassword("Climate012220ShielD");
@@ -126,6 +130,10 @@ export default function Settings() {
     };
 
     const handleResetMetrics = async () => {
+        if (resetPassword.trim() !== "Climate012220ShielD") {
+            toast.error("Invalid password");
+            return;
+        }
         setResetLoading(true);
         try {
             await api.weather.resetMetrics("Climate012220ShielD");
