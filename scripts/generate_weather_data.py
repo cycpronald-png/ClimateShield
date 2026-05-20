@@ -305,7 +305,7 @@ def main():
         with open(PUBLIC_DATA_DIR / "readings.json", "w") as f:
             json.dump(readings, f, indent=2)
 
-        # Update and save HNE state.json
+        # Update and save HNE state.json (with embedded risk config for frontend)
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         if state_data["last_date"] != today:
             # Let's say we check if the minimum forecast temp today is >= 28 to increment HNE
@@ -317,9 +317,17 @@ def main():
             else:
                 state_data["consecutive_hot_nights"] = 0
             state_data["last_date"] = today
-            
-            with open(STATE_FILE, "w") as f:
-                json.dump(state_data, f, indent=2)
+
+        # Merge risk config into state.json so frontend can read thresholds
+        state_data["wbt_thresholds"] = DEFAULT_CONFIG["wbt_thresholds"]
+        state_data["hne_thresholds"] = DEFAULT_CONFIG["hne_thresholds"]
+        state_data["vulnerability_config"] = DEFAULT_CONFIG["vulnerability_config"]
+        state_data["warning_multipliers"] = DEFAULT_CONFIG["warning_multipliers"]
+        state_data["t8_floor"] = DEFAULT_CONFIG["t8_floor"]
+        state_data["state_ranges"] = DEFAULT_CONFIG["state_ranges"]
+
+        with open(STATE_FILE, "w") as f:
+            json.dump(state_data, f, indent=2)
 
         # Generate a fake history.json for the frontend (last 7 days)
         history = {"history": []}

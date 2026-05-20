@@ -92,7 +92,8 @@ export const api = {
             if (!response.ok) throw new Error("Failed to fetch historical readings");
             const all = await response.json();
             // Filter by station and limit to requested hours
-            return (all || []).filter((r: any) => r.station === station).slice(0, hours);
+            const filtered = (all || []).filter((r: any) => r.station === station).slice(0, hours);
+            return { readings: filtered };
         },
         getLiveScore: async (station: string) => {
             const response = await fetch(`${DATA_BASE}current.json`);
