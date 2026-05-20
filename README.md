@@ -103,13 +103,6 @@ Create a `.env` file in the project root:
 cp .env.example .env
 ```
 
-**Required variables:**
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ADMIN_PASSWORD` | Password for admin panel access | `Climate1222Shield` |
-| `METRICS_PASSWORD` | Password for metrics/health endpoints | `Climate1222Shield` |
-
 > **Security note:** Change these passwords before deploying to production. The passwords are lazy-evaluated — the app will prompt for them when accessing protected routes.
 
 ### Step 4 — Build and Launch
