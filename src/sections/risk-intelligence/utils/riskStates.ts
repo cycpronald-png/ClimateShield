@@ -12,7 +12,7 @@ export const STATE_META: RiskStateMeta[] = [
     { name: 'Safe', min: 0, max: 12, color: '#22c55e', bg: 'bg-emerald-500', text: 'text-emerald-700', fill: 'rgba(34, 197, 94, 0.10)' },
     { name: 'Low', min: 13, max: 16, color: '#3b82f6', bg: 'bg-blue-500', text: 'text-blue-700', fill: 'rgba(59, 130, 246, 0.10)' },
     { name: 'Yellow', min: 17, max: 22, color: '#eab308', bg: 'bg-yellow-500', text: 'text-yellow-800', fill: 'rgba(234, 179, 8, 0.12)' },
-    { name: 'Red', min: 23, max: 26, color: '#ef4444', bg: 'bg-red-500', text: 'text-red-700', fill: 'rgba(239, 68, 68, 0.12)' },
+    { name: 'Red', min: 23, max: 24, color: '#ef4444', bg: 'bg-red-500', text: 'text-red-700', fill: 'rgba(239, 68, 68, 0.12)' },
     { name: 'Purple', min: 25, max: 30, color: '#a855f7', bg: 'bg-purple-500', text: 'text-purple-700', fill: 'rgba(168, 85, 247, 0.12)' },
 ];
 

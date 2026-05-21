@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
     ReferenceArea, ResponsiveContainer,
@@ -8,11 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, AlertTriangle, Droplets, Users, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react';
 import type { WeatherForecastDay } from '../types';
-import { STATE_META, stateFromScore, ACTION_MAP, RESOURCE_MAP, MAX_RISK_SCORE } from '../utils/riskStates';
+import { stateFromScore, ACTION_MAP, RESOURCE_MAP, MAX_RISK_SCORE } from '../utils/riskStates';
 
 interface ForecastDashboardProps {
     forecast: WeatherForecastDay[];
     onScoreClick?: () => void;
+    riskConfig?: any;
 }
 
 function formatDate(d: string): string {
@@ -20,14 +21,99 @@ function formatDate(d: string): string {
     return `${d.slice(4, 6)}/${d.slice(6, 8)}`;
 }
 
-export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardProps) {
+export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: ForecastDashboardProps) {
     const [viewMode, setViewMode] = useState<'full' | 'chart' | 'actions'>('full');
     const [actionsExpanded, setActionsExpanded] = useState(true);
+
+    const stateFromScoreWithConfig = useCallback((score: number) => {
+        const ranges = riskConfig?.state_ranges;
+        if (!ranges || ranges.length === 0) {
+            return stateFromScore(score);
+        }
+
+        const scoreRound = Math.round(score);
+        const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
+
+        let foundRange: any = null;
+        for (const pName of priorityOrder) {
+            const r = ranges.find((x: any) => x.name === pName);
+            if (r && scoreRound >= r.min && scoreRound <= r.max) {
+                foundRange = r;
+                break;
+            }
+        }
+        if (!foundRange) {
+            const purple = ranges.find((s: any) => s.name === 'Purple');
+            if (purple && scoreRound >= purple.min) foundRange = purple;
+            else foundRange = ranges.find((s: any) => scoreRound >= s.min && scoreRound <= s.max) ?? ranges[0];
+        }
+
+        const name = foundRange.name;
+        const colorMap: Record<string, string> = {
+            'Safe': '#22c55e',
+            'Low': '#3b82f6',
+            'Yellow': '#eab308',
+            'Red': '#ef4444',
+            'Purple': '#a855f7'
+        };
+        const bgMap: Record<string, string> = {
+            'Safe': 'bg-emerald-500',
+            'Low': 'bg-blue-500',
+            'Yellow': 'bg-yellow-500',
+            'Red': 'bg-red-500',
+            'Purple': 'bg-purple-500'
+        };
+        const textMap: Record<string, string> = {
+            'Safe': 'text-emerald-700',
+            'Low': 'text-blue-700',
+            'Yellow': 'text-yellow-800',
+            'Red': 'text-red-700',
+            'Purple': 'text-purple-700'
+        };
+
+        return {
+            name: name,
+            min: foundRange.min,
+            max: foundRange.max,
+            color: colorMap[name] || '#888888',
+            bg: bgMap[name] || 'bg-zinc-500',
+            text: textMap[name] || 'text-zinc-700',
+            fill: bgMap[name] || 'rgba(128, 128, 128, 0.1)'
+        };
+    }, [riskConfig]);
+
+    const activeBandColors = useMemo(() => {
+        const ranges = riskConfig?.state_ranges;
+        if (!ranges || ranges.length === 0) {
+            return [
+                { name: 'Safe', min: 0, max: 12, fill: 'rgba(34, 197, 94, 0.10)' },
+                { name: 'Low', min: 13, max: 16, fill: 'rgba(59, 130, 246, 0.10)' },
+                { name: 'Yellow', min: 17, max: 22, fill: 'rgba(234, 179, 8, 0.12)' },
+                { name: 'Red', min: 23, max: 24, fill: 'rgba(239, 68, 68, 0.12)' },
+                { name: 'Purple', min: 25, max: 30, fill: 'rgba(168, 85, 247, 0.12)' },
+            ];
+        }
+
+        const opacityMap: Record<string, string> = {
+            'Safe': 'rgba(34, 197, 94, 0.10)',
+            'Low': 'rgba(59, 130, 246, 0.10)',
+            'Yellow': 'rgba(234, 179, 8, 0.12)',
+            'Red': 'rgba(239, 68, 68, 0.12)',
+            'Purple': 'rgba(168, 85, 247, 0.12)'
+        };
+
+        return ranges.map((r: any) => ({
+            name: r.name,
+            min: r.min,
+            max: r.max,
+            fill: opacityMap[r.name] || 'rgba(128,128,128,0.1)'
+        }));
+    }, [riskConfig]);
 
     const chartData = useMemo(() => {
         return forecast.map((day) => {
             const score = day.composite_risk_score ?? 0;
-            const meta = stateFromScore(score);
+            const meta = stateFromScoreWithConfig(score);
             return {
                 date: formatDate(day.forecast_date),
                 rawDate: day.forecast_date,
@@ -39,23 +125,35 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
                 maxTemp: day.max_temp,
                 source: day.source || 'hko',
                 isExtended: (day.source || 'hko') === 'open_meteo',
-                action: ACTION_MAP[meta.name],
-                resources: RESOURCE_MAP[meta.name],
+                action: ACTION_MAP[meta.name] || ACTION_MAP.Safe,
+                resources: RESOURCE_MAP[meta.name] || RESOURCE_MAP.Safe,
+                bg: meta.bg
             };
         });
-    }, [forecast]);
+    }, [forecast, stateFromScoreWithConfig]);
 
     const stats = useMemo(() => {
         if (chartData.length === 0) return null;
-        const highRiskDays = chartData.filter(d => d.score >= 17); // Yellow+
+        
+        const ranges = riskConfig?.state_ranges;
+        let lowMin = 13;
+        let yellowMin = 17;
+        if (ranges) {
+            const lowBand = ranges.find((r: any) => r.name === 'Low');
+            if (lowBand) lowMin = lowBand.min;
+            const yellowBand = ranges.find((r: any) => r.name === 'Yellow');
+            if (yellowBand) yellowMin = yellowBand.min;
+        }
+
+        const highRiskDays = chartData.filter(d => d.score >= yellowMin);
         const peakDay = chartData.reduce((max, d) => (d.score > max.score ? d : max), chartData[0]);
-        const actionDays = chartData.filter(d => d.score >= 13); // Low+
+        const actionDays = chartData.filter(d => d.score >= lowMin);
 
         // Find consecutive high-risk windows
         let windows: { start: string; end: string; days: number; maxScore: number }[] = [];
         let currentWindow: typeof windows[0] | null = null;
         for (const d of chartData) {
-            if (d.score >= 17) {
+            if (d.score >= yellowMin) {
                 if (!currentWindow) {
                     currentWindow = { start: d.date, end: d.date, days: 1, maxScore: d.score };
                 } else {
@@ -83,7 +181,7 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
             actionDays: actionDays.length,
             longestWindow,
         };
-    }, [chartData]);
+    }, [chartData, riskConfig]);
 
     if (forecast.length === 0) {
         return (
@@ -139,7 +237,7 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
                                 />
 
                                 {/* State band backgrounds */}
-                                {STATE_META.map((s) => (
+                                {activeBandColors.map((s: any) => (
                                     <ReferenceArea
                                         key={s.name}
                                         y1={s.min}
@@ -170,7 +268,7 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
                                 <AlertTriangle className="w-4 h-4 text-red-500" />
                                 <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Peak Risk</span>
                             </div>
-                            <Badge className={`${stats.peakDay.color === '#22c55e' ? 'bg-emerald-500' : stats.peakDay.color === '#3b82f6' ? 'bg-blue-500' : stats.peakDay.color === '#eab308' ? 'bg-yellow-500 text-black' : stats.peakDay.color === '#ef4444' ? 'bg-red-500' : 'bg-purple-500'} text-white text-xs`}>
+                            <Badge className={`${stats.peakDay.bg} text-white text-xs`}>
                                 {stats.peakDay.state}
                             </Badge>
                             <div className="text-[10px] text-zinc-500 mt-1">
@@ -215,7 +313,7 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
                                 Days needing outreach response
                             </div>
                             <div className="text-[10px] text-zinc-600 dark:text-zinc-400 mt-0.5">
-                                {RESOURCE_MAP[stateFromScore(stats.peakDay?.score || 0).name]}
+                                {stats.peakDay.resources}
                             </div>
                         </div>
                     </div>
@@ -238,7 +336,6 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
                         {actionsExpanded && (
                             <div className="max-h-[280px] overflow-y-auto">
                                 {chartData.map((day, i) => {
-                                    const meta = stateFromScore(day.score);
                                     return (
                                         <div
                                             key={day.rawDate}
@@ -258,9 +355,9 @@ export function ForecastDashboard({ forecast, onScoreClick }: ForecastDashboardP
 
                                             {/* Risk badge */}
                                             <Badge
-                                                className={`shrink-0 text-[10px] px-1.5 py-0.5 ${meta.bg} text-white`}
+                                                className={`shrink-0 text-[10px] px-1.5 py-0.5 ${day.bg} text-white`}
                                             >
-                                                {meta.name}
+                                                {day.state}
                                             </Badge>
 
                                             {/* Action text */}

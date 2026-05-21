@@ -9,19 +9,6 @@ import { cn } from '@/lib/utils';
 import type { WeatherForecastDay } from '../types';
 import { stateFromScore, STATE_COLORS, MAX_RISK_SCORE } from '../utils/riskStates';
 
-interface ForecastComparisonProps {
-    forecast: WeatherForecastDay[];
-    onScoreClick?: () => void;
-    onRefresh?: () => void;
-}
-
-const riskScoreColor = (score: number) => {
-    const name = stateFromScore(score).name;
-    return STATE_COLORS[name] || 'bg-emerald-400 text-white';
-};
-
-const riskScoreText = (score: number) => stateFromScore(score).name;
-
 function WeatherIcon({ code }: { code?: number }) {
     if (code === undefined) return <Sun className="h-6 w-6 shrink-0 text-orange-500" />;
     // HKO icon codes: sunny=50+, cloudy=60+, rain=80+, storm=90+
@@ -31,7 +18,55 @@ function WeatherIcon({ code }: { code?: number }) {
     return <Sun className="h-6 w-6 shrink-0 text-orange-500" />;
 }
 
-export function ForecastComparison({ forecast, onScoreClick, onRefresh }: ForecastComparisonProps) {
+interface ForecastComparisonProps {
+    forecast: WeatherForecastDay[];
+    onScoreClick?: () => void;
+    onRefresh?: () => void;
+    riskConfig?: any;
+}
+
+export function ForecastComparison({ forecast, onScoreClick, onRefresh, riskConfig }: ForecastComparisonProps) {
+    const stateFromScoreWithConfig = (score: number) => {
+        const ranges = riskConfig?.state_ranges;
+        if (!ranges || ranges.length === 0) {
+            const staticMeta = stateFromScore(score);
+            return {
+                name: staticMeta.name,
+                badgeClass: STATE_COLORS[staticMeta.name] || 'bg-emerald-400 text-white'
+            };
+        }
+
+        const scoreRound = Math.round(score);
+        const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
+
+        let foundRange: any = null;
+        for (const pName of priorityOrder) {
+            const r = ranges.find((x: any) => x.name === pName);
+            if (r && scoreRound >= r.min && scoreRound <= r.max) {
+                foundRange = r;
+                break;
+            }
+        }
+        if (!foundRange) {
+            const purple = ranges.find((s: any) => s.name === 'Purple');
+            if (purple && scoreRound >= purple.min) foundRange = purple;
+            else foundRange = ranges.find((s: any) => scoreRound >= s.min && scoreRound <= s.max) ?? ranges[0];
+        }
+
+        const name = foundRange.name;
+        const colorMap: Record<string, string> = {
+            'Safe': 'bg-emerald-400 text-white',
+            'Low': 'bg-blue-500 text-white',
+            'Yellow': 'bg-yellow-500 text-black',
+            'Red': 'bg-red-600 text-white',
+            'Purple': 'bg-purple-600 text-white'
+        };
+
+        return {
+            name,
+            badgeClass: colorMap[name] || 'bg-zinc-500 text-white'
+        };
+    };
 
     if (!forecast || forecast.length === 0) {
         return (
@@ -66,6 +101,7 @@ export function ForecastComparison({ forecast, onScoreClick, onRefresh }: Foreca
                         const wbtPeak = day.wet_bulb_peak !== undefined
                             ? `${day.wet_bulb_peak.toFixed(1)}°C`
                             : '—';
+                        const scoreMeta = stateFromScoreWithConfig(score);
 
                         return (
                             <TableRow key={`${day.forecast_date}-${day.forecast_day_index ?? 0}`} className="hover:bg-secondary/30 cursor-pointer transition-colors"
@@ -94,7 +130,7 @@ export function ForecastComparison({ forecast, onScoreClick, onRefresh }: Foreca
                                             <TooltipProvider>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <Badge className={cn("px-2 py-1 rounded-full text-xs font-bold cursor-pointer flex items-center gap-1", riskScoreColor(score))}>
+                                                        <Badge className={cn("px-2 py-1 rounded-full text-xs font-bold cursor-pointer flex items-center gap-1", scoreMeta.badgeClass)}>
                                                             <TrendingUp className="w-3 h-3" />
                                                             {score}/{MAX_RISK_SCORE}
                                                         </Badge>
@@ -104,7 +140,7 @@ export function ForecastComparison({ forecast, onScoreClick, onRefresh }: Foreca
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
-                                            <span className="text-xs font-medium">{riskScoreText(score)}</span>
+                                            <span className="text-xs font-medium">{scoreMeta.name}</span>
                                         </div>
                                         <div className="text-xs text-muted-foreground">
                                             Est. WBT Peak: {wbtPeak}

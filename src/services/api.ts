@@ -125,6 +125,67 @@ function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: an
     };
 }
 
+async function getActiveRiskConfig(): Promise<any> {
+    const saved = localStorage.getItem("climateshield_risk_config");
+    if (saved) {
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            console.error("Failed to parse saved config", e);
+        }
+    }
+    const stateRes = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+    if (stateRes && stateRes.ok) {
+        try {
+            const stateData = await stateRes.json();
+            return {
+                wbt_thresholds: stateData.wbt_thresholds,
+                hne_thresholds: stateData.hne_thresholds,
+                vulnerability_config: stateData.vulnerability_config,
+                warning_multipliers: stateData.warning_multipliers,
+                t8_floor: stateData.t8_floor,
+                state_ranges: stateData.state_ranges
+            };
+        } catch (e) {
+            console.error("Failed to parse state.json config", e);
+        }
+    }
+    // Hardcoded fallback with strict non-overlapping bands
+    return {
+        wbt_thresholds: [
+            { max_temp: 21.9, score: 0 },
+            { min_temp: 22, max_temp: 23.9, score: 1 },
+            { min_temp: 24, max_temp: 26.9, score: 2 },
+            { min_temp: 27, max_temp: 29.9, score: 4 },
+            { min_temp: 30, score: 6 },
+        ],
+        hne_thresholds: [
+            { max_nights: 0, score: 0 },
+            { min_nights: 1, max_nights: 1, score: 1 },
+            { min_nights: 2, max_nights: 2, score: 2 },
+            { min_nights: 3, max_nights: 4, score: 4 },
+            { min_nights: 5, score: 6 },
+        ],
+        vulnerability_config: { trigger_h_score: 1, bonus: 5 },
+        warning_multipliers: {
+            none: 1.0,
+            thunderstorm_or_amber_rain: 2.0,
+            t1_or_red_rain: 1.5,
+            t3: 1.5,
+            black_rain: 2.0,
+            t8: 3.0,
+        },
+        t8_floor: { enabled: true, min_score: 27 },
+        state_ranges: [
+            { name: 'Safe', min: 0, max: 12 },
+            { name: 'Low', min: 13, max: 16 },
+            { name: 'Yellow', min: 17, max: 22 },
+            { name: 'Red', min: 23, max: 24 },
+            { name: 'Purple', min: 25, max: 30 },
+        ]
+    };
+}
+
 // Increment localStorage counters for frontend calculations
 function incrementMetric(key: string) {
     try {
@@ -229,7 +290,29 @@ export const api = {
         getForecast: async () => {
             const response = await fetch(`${DATA_BASE}forecast.json`);
             if (!response.ok) throw new Error("Failed to fetch forecast");
-            return response.json();
+            const forecastDays = await response.json();
+            
+            const config = await getActiveRiskConfig();
+            
+            const stateRes = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+            const stateData = stateRes && stateRes.ok ? await stateRes.json() : {};
+            let projStreak = stateData.consecutive_hot_nights || 0;
+            
+            return forecastDays.map((f: any) => {
+                if (f.min_temp !== undefined && f.min_temp >= 28.0) {
+                    projStreak += 1;
+                } else {
+                    projStreak = 0;
+                }
+                const wbtVal = f.wet_bulb_peak !== undefined ? f.wet_bulb_peak : calculateWbt(f.max_temp || 25, f.max_rh || f.min_rh || 70);
+                const result = computeRiskScoreV2(wbtVal, projStreak, [], config);
+                return {
+                    ...f,
+                    wet_bulb_peak: wbtVal,
+                    composite_risk_score: result.value,
+                    risk_level: result.state
+                };
+            });
         },
         getRisks: async () => {
             const response = await fetch(`${DATA_BASE}current.json`);
@@ -259,63 +342,7 @@ export const api = {
             const all = await response.json();
             const found = (all || []).find((r: any) => r.station === station);
             
-            // Get active risk config
-            let config = null;
-            try {
-                const configStr = localStorage.getItem("climateshield_risk_config");
-                if (configStr) config = JSON.parse(configStr);
-            } catch {}
-            
-            if (!config) {
-                const stateRes = await fetch(`${DATA_BASE}state.json`).catch(() => null);
-                if (stateRes && stateRes.ok) {
-                    const stateData = await stateRes.json();
-                    config = {
-                        wbt_thresholds: stateData.wbt_thresholds,
-                        hne_thresholds: stateData.hne_thresholds,
-                        vulnerability_config: stateData.vulnerability_config,
-                        warning_multipliers: stateData.warning_multipliers,
-                        t8_floor: stateData.t8_floor,
-                        state_ranges: stateData.state_ranges
-                    };
-                }
-            }
-
-            if (!config) {
-                config = {
-                    wbt_thresholds: [
-                        { max_temp: 21.9, score: 0 },
-                        { min_temp: 22, max_temp: 23.9, score: 1 },
-                        { min_temp: 24, max_temp: 26.9, score: 2 },
-                        { min_temp: 27, max_temp: 29.9, score: 4 },
-                        { min_temp: 30, score: 6 },
-                    ],
-                    hne_thresholds: [
-                        { max_nights: 0, score: 0 },
-                        { min_nights: 1, max_nights: 1, score: 1 },
-                        { min_nights: 2, max_nights: 2, score: 2 },
-                        { min_nights: 3, max_nights: 4, score: 4 },
-                        { min_nights: 5, score: 6 },
-                    ],
-                    vulnerability_config: { trigger_h_score: 1, bonus: 5 },
-                    warning_multipliers: {
-                        none: 1.0,
-                        thunderstorm_or_amber_rain: 2.0,
-                        t1_or_red_rain: 1.5,
-                        t3: 1.5,
-                        black_rain: 2.0,
-                        t8: 3.0,
-                    },
-                    t8_floor: { enabled: true, min_score: 27 },
-                    state_ranges: [
-                        { name: 'Safe', min: 0, max: 12 },
-                        { name: 'Low', min: 13, max: 16 },
-                        { name: 'Yellow', min: 17, max: 22 },
-                        { name: 'Red', min: 23, max: 26 },
-                        { name: 'Purple', min: 25, max: 30 },
-                    ]
-                };
-            }
+            const config = await getActiveRiskConfig();
 
             const warningsRes = await fetch(`${DATA_BASE}warnings.json`).catch(() => null);
             const warnings = warningsRes && warningsRes.ok ? await warningsRes.json() : [];
@@ -346,20 +373,69 @@ export const api = {
             };
         },
         getTrends: async () => {
-            const response = await fetch(`${DATA_BASE}current.json`);
-            if (!response.ok) return { backward: [], forward: [] };
-            const all = await response.json();
-            const backward = (all || []).map((r: any) => ({
-                date: r.recorded_at,
-                score: r.composite_risk_score,
-                type: 'history'
-            }));
-            return { backward, forward: [] };
+            const config = await getActiveRiskConfig();
+            
+            // 1. Fetch backward history trends from trends.json (if ok) or history.json
+            let backward: any[] = [];
+            try {
+                const response = await fetch(`${DATA_BASE}trends.json`);
+                if (response.ok) {
+                    const trendsData = await response.json();
+                    backward = (trendsData.backward || []).map((t: any) => {
+                        const result = computeRiskScoreV2(t.wbt || 25.0, Math.round(t.hne || 0), [], config);
+                        return {
+                            ...t,
+                            composite_risk_score: result.value,
+                            risk_level: result.state
+                        };
+                    });
+                } else {
+                    const historyRes = await fetch(`${DATA_BASE}history.json`).then(r => r.json());
+                    backward = (historyRes.history || []).map((h: any, idx: number) => {
+                        const d = new Date();
+                        d.setDate(d.getDate() - idx);
+                        const dateStr = d.toISOString().split('T')[0].replace(/-/g, '');
+                        const wbt = 24.5 - (idx % 2);
+                        const hne = h.hne || 0;
+                        const result = computeRiskScoreV2(wbt, Math.round(hne), [], config);
+                        return {
+                            date: dateStr,
+                            composite_risk_score: result.value,
+                            risk_level: result.state,
+                            wbt,
+                            hne,
+                            type: 'history'
+                        };
+                    }).reverse();
+                }
+            } catch (e) {
+                console.error("Failed to load backward trends", e);
+            }
+            
+            // 2. Load forward forecast trends using weather.getForecast() (recalculated dynamically!)
+            let forward: any[] = [];
+            try {
+                const forecastDays = await api.weather.getForecast();
+                forward = forecastDays.slice(0, 9).map((f: any) => {
+                    const maxTemp = f.max_temp !== undefined ? f.max_temp : 30;
+                    const hne = maxTemp >= 28 ? Number(((maxTemp - 25) * 2).toFixed(1)) : 0;
+                    return {
+                        date: f.forecast_date,
+                        type: 'forecast',
+                        composite_risk_score: f.composite_risk_score,
+                        risk_level: f.risk_level,
+                        wbt: f.wet_bulb_peak,
+                        hne: hne
+                    };
+                });
+            } catch (e) {
+                console.error("Failed to load forward trends", e);
+            }
+            
+            return { backward, forward };
         },
         getRiskConfig: async () => {
-            const response = await fetch(`${DATA_BASE}state.json`);
-            if (!response.ok) throw new Error("Failed to fetch risk config");
-            return response.json();
+            return getActiveRiskConfig();
         },
         getUnreadAlerts: async () => {
             const response = await fetch(`${DATA_BASE}warnings.json`);

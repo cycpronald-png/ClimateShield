@@ -11,6 +11,7 @@ interface RiskScoreGaugeProps {
     readings: WeatherReading[];
     selectedStation: string;
     onStationSelect?: (station: string) => void;
+    riskConfig?: any;
 }
 
 interface LiveScoreData {
@@ -31,29 +32,89 @@ function scoreToPercent(score: number): number {
     return Math.max(3, Math.min(100, (score / MAX_RISK_SCORE) * 100));
 }
 
-function getFriendlyMessage(score: number): string {
-    if (score === 0) return 'Safe — No Immediate Risk';
-    if (score <= 12) return 'Safe — No Immediate Risk';
-    if (score <= 16) return 'Low Risk — Continue Monitoring';
-    if (score <= 22) return 'Yellow Alert — Outreach Team Notified';
-    if (score <= 26) return 'Red Alert — Emergency Mobilization';
-    return 'Purple Alert — Full Mobilization';
+function getStateMetaWithConfig(score: number, riskConfig?: any) {
+    const ranges = riskConfig?.state_ranges;
+    if (!ranges || ranges.length === 0) {
+        const meta = stateFromScore(score);
+        return {
+            name: meta.name,
+            min: meta.min,
+            max: meta.max,
+            bg: meta.bg,
+            text: meta.text
+        };
+    }
+
+    const scoreRound = Math.round(score);
+    const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
+
+    let foundRange: any = null;
+    for (const pName of priorityOrder) {
+        const r = ranges.find((x: any) => x.name === pName);
+        if (r && scoreRound >= r.min && scoreRound <= r.max) {
+            foundRange = r;
+            break;
+        }
+    }
+    if (!foundRange) {
+        const purple = ranges.find((s: any) => s.name === 'Purple');
+        if (purple && scoreRound >= purple.min) foundRange = purple;
+        else foundRange = ranges.find((s: any) => scoreRound >= s.min && scoreRound <= s.max) ?? ranges[0];
+    }
+
+    const name = foundRange.name;
+    const bgMap: Record<string, string> = {
+        'Safe': 'bg-emerald-500',
+        'Low': 'bg-blue-500',
+        'Yellow': 'bg-yellow-500',
+        'Red': 'bg-red-500',
+        'Purple': 'bg-purple-500'
+    };
+    const textMap: Record<string, string> = {
+        'Safe': 'text-emerald-700 dark:text-emerald-400',
+        'Low': 'text-blue-700 dark:text-blue-400',
+        'Yellow': 'text-yellow-800 dark:text-yellow-500',
+        'Red': 'text-red-700 dark:text-red-400',
+        'Purple': 'text-purple-700 dark:text-purple-400'
+    };
+
+    return {
+        name,
+        min: foundRange.min,
+        max: foundRange.max,
+        bg: bgMap[name] || 'bg-zinc-500',
+        text: textMap[name] || 'text-zinc-700'
+    };
+}
+
+function getFriendlyMessage(score: number, riskConfig?: any): string {
+    const meta = getStateMetaWithConfig(score, riskConfig);
+    if (meta.name === 'Safe') return 'Safe — No Immediate Risk';
+    if (meta.name === 'Low') return 'Low Risk — Continue Monitoring';
+    if (meta.name === 'Yellow') return 'Yellow Alert — Outreach Team Notified';
+    if (meta.name === 'Red') return 'Red Alert — Emergency Mobilization';
+    if (meta.name === 'Purple') return 'Purple Alert — Full Mobilization';
+    return 'Safe — No Immediate Risk';
 }
 
 function SingleGauge({
     reading,
     liveScore,
+    activeBands,
+    riskConfig
 }: {
     reading: WeatherReading;
     liveScore: LiveScoreData | null;
+    activeBands: any[];
+    riskConfig?: any;
 }) {
     const persistedScore = reading.composite_risk_score;
     const hasPersistedScore = persistedScore != null;
     const score: number = liveScore?.value ?? persistedScore ?? 0;
     const scoreKnown = liveScore != null || hasPersistedScore;
     const pct = scoreToPercent(score);
-    const stateMeta = stateFromScore(score);
-    const message = scoreKnown ? getFriendlyMessage(score) : 'Computing risk score…';
+    const stateMeta = getStateMetaWithConfig(score, riskConfig);
+    const message = scoreKnown ? getFriendlyMessage(score, riskConfig) : 'Computing risk score…';
     const theoreticalMax = MAX_RISK_SCORE;
     const maxPct = scoreToPercent(theoreticalMax);
 
@@ -85,7 +146,7 @@ function SingleGauge({
 
             {/* Main gauge bar */}
             <div className="relative h-10 w-full rounded-lg overflow-hidden flex">
-                {STATE_META.map((s) => {
+                {activeBands.map((s) => {
                     const widthPct = ((s.max - s.min + 1) / 31) * 100;
                     return (
                         <div
@@ -111,10 +172,10 @@ function SingleGauge({
             {/* Scale labels */}
             <div className="flex justify-between text-[10px] text-zinc-400 px-0.5">
                 <span>0</span>
-                <span>Safe</span>
-                <span>15</span>
-                <span>Yellow</span>
-                <span>25</span>
+                <span>{activeBands.find(b => b.name === 'Safe')?.name || 'Safe'}</span>
+                <span>{activeBands.find(b => b.name === 'Yellow')?.min || 15}</span>
+                <span>{activeBands.find(b => b.name === 'Yellow')?.name || 'Yellow'}</span>
+                <span>{activeBands.find(b => b.name === 'Purple')?.min || 25}</span>
                 <span>30</span>
             </div>
 
@@ -143,10 +204,12 @@ function SingleGauge({
     );
 }
 
-function AllStationsGrid({ readings, selectedStation, onStationSelect }: {
+function AllStationsGrid({ readings, selectedStation, onStationSelect, activeBands, riskConfig }: {
     readings: WeatherReading[];
     selectedStation: string;
     onStationSelect?: (station: string) => void;
+    activeBands: any[];
+    riskConfig?: any;
 }) {
     const ALLOWED_STATIONS = [
         'Hong Kong Observatory',
@@ -164,7 +227,7 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect }: {
                 const persistedScore = r.composite_risk_score;
                 const hasPersistedScore = persistedScore != null;
                 const score: number = hasPersistedScore ? persistedScore : 0;
-                const meta = stateFromScore(score);
+                const meta = getStateMetaWithConfig(score, riskConfig);
                 const pct = scoreToPercent(score);
                 const isSelected = r.station === selectedStation;
 
@@ -181,7 +244,7 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect }: {
                         <div className="flex items-center gap-3">
                             {/* Mini gauge */}
                             <div className="flex-1 h-4 rounded-md overflow-hidden flex relative">
-                                {STATE_META.map((s) => {
+                                {activeBands.map((s) => {
                                     const widthPct = ((s.max - s.min + 1) / 31) * 100;
                                     return (
                                         <div
@@ -223,7 +286,7 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect }: {
     );
 }
 
-export function RiskScoreGauge({ readings, selectedStation, onStationSelect }: RiskScoreGaugeProps) {
+export function RiskScoreGauge({ readings, selectedStation, onStationSelect, riskConfig }: RiskScoreGaugeProps) {
     const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
     const [liveScore, setLiveScore] = useState<LiveScoreData | null>(null);
     const [liveError, setLiveError] = useState<string | null>(null);
@@ -251,6 +314,33 @@ export function RiskScoreGauge({ readings, selectedStation, onStationSelect }: R
         const interval = setInterval(fetchLiveScore, 120000);
         return () => clearInterval(interval);
     }, [fetchLiveScore]);
+
+    const activeBands = useMemo(() => {
+        const ranges = riskConfig?.state_ranges;
+        if (!ranges || ranges.length === 0) {
+            return STATE_META.map(s => ({
+                name: s.name,
+                min: s.min,
+                max: s.max,
+                bg: s.bg
+            }));
+        }
+
+        const bgMap: Record<string, string> = {
+            'Safe': 'bg-emerald-500',
+            'Low': 'bg-blue-500',
+            'Yellow': 'bg-yellow-500',
+            'Red': 'bg-red-500',
+            'Purple': 'bg-purple-500'
+        };
+
+        return ranges.map((r: any) => ({
+            name: r.name,
+            min: r.min,
+            max: r.max,
+            bg: bgMap[r.name] || 'bg-zinc-500'
+        }));
+    }, [riskConfig]);
 
     return (
         <Card className="border-zinc-200 dark:border-zinc-800">
@@ -288,7 +378,7 @@ export function RiskScoreGauge({ readings, selectedStation, onStationSelect }: R
                 )}
                 {viewMode === 'single' ? (
                     selectedReading ? (
-                        <SingleGauge reading={selectedReading} liveScore={liveScore} />
+                        <SingleGauge reading={selectedReading} liveScore={liveScore} activeBands={activeBands} riskConfig={riskConfig} />
                     ) : (
                         <div className="text-sm text-zinc-500 text-center py-4">
                             No data available for {selectedStation}
@@ -299,6 +389,8 @@ export function RiskScoreGauge({ readings, selectedStation, onStationSelect }: R
                         readings={readings}
                         selectedStation={selectedStation}
                         onStationSelect={onStationSelect}
+                        activeBands={activeBands}
+                        riskConfig={riskConfig}
                     />
                 )}
             </CardContent>

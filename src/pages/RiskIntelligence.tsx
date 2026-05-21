@@ -181,7 +181,7 @@ export default function RiskIntelligence() {
                                     <span>Extended forecast (days 10-14) not yet available. Enable Open-Meteo beta in Settings, then refresh.</span>
                                 </div>
                             )}
-                            <ForecastDashboard forecast={forecast} onScoreClick={() => setModalOpen(true)} />
+                            <ForecastDashboard forecast={forecast} onScoreClick={() => setModalOpen(true)} riskConfig={riskConfig} />
                         </div>
                     </>
                 )}
@@ -233,13 +233,13 @@ export default function RiskIntelligence() {
                                 <span>Extended forecast (days 10-14) not yet available. Enable Open-Meteo beta in Settings, then refresh.</span>
                             </div>
                         )}
-                        <ForecastDashboard forecast={forecast} onScoreClick={() => setModalOpen(true)} />
+                        <ForecastDashboard forecast={forecast} onScoreClick={() => setModalOpen(true)} riskConfig={riskConfig} />
                     </>
                 )}
             </div>
 
             {/* Phase 5.4: Risk History Modal */}
-            <RiskHistoryModal open={modalOpen} onClose={() => setModalOpen(false)} trends={trends} />
+            <RiskHistoryModal open={modalOpen} onClose={() => setModalOpen(false)} trends={trends} riskConfig={riskConfig} />
 
             {/* Phase 4: Station Detail Modal */}
             <StationDetailModal open={detailModalOpen} station={detailStation} onClose={() => setDetailModalOpen(false)} />
