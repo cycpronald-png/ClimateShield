@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -30,8 +32,21 @@ jobs:
           python scripts/generate_weather_data.py
 
       - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(data): auto-update static weather data"
-          file_pattern: public/data/*.json
-          branch: main
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add public/data/*.json
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git commit -m "chore(data): auto-update static weather data"
+          
+          # Pull latest changes from remote to avoid divergent branches (race condition)
+          git pull --rebase origin main
+          
+          # Push the changes
+          git push origin main
