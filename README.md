@@ -8,7 +8,7 @@ A lightweight climate risk awareness dashboard for Hong Kong. Monitors real-time
 - **Risk Intelligence** — Wet-bulb temperature (WBT) time-series analysis with fixed 15-40°C Y-axis and 5 risk bands + 9 overlap zones, 9-day / 14-day forecast discrepancy detection, hot-night-excess (HNE) monitoring with temperature-aware projection, station-level detail modals with risk history (0-30 scale)
 - **Live Risk Score** — On-demand recomputation via `/live-score` endpoint with full score breakdown (W, H, V, M components) and theoretical maximum display (30/30)
 - **Donation** — Pledge cooling / warming supplies, select drop-off locations, track estimated impact
-- **Admin Settings** — Theme toggle, data backup (export/import), impact metrics reset, risk formula parameter editing (WBT thresholds, vulnerability triggers, warning multipliers)
+- **Admin Settings** — Theme toggle, data backup (export/import), risk formula parameter editing (WBT thresholds, vulnerability triggers, warning multipliers)
 
 ## Architecture
 

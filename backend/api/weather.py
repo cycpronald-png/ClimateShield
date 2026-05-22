@@ -11,7 +11,7 @@ from backend.limiter import limiter
 
 from backend.database import get_db
 from backend import models, schemas
-from backend.services.counters import get_all_counters, reset_counters
+from backend.services.counters import get_all_counters
 from backend.services.last_refresh import _write_last_refresh, get_last_refresh
 from backend.services.audit_logger import audit_log
 from backend.services.open_meteo_client import open_meteo
@@ -788,27 +788,6 @@ def get_metrics(db: Session = Depends(get_db)):
     Public endpoint — no password required for viewing.
     """
     return get_all_counters(db)
-
-
-@router.post("/metrics/reset")
-def reset_metrics(
-    request: Request,
-    req: _MetricsRequest,
-    db: Session = Depends(get_db),
-):
-    """
-    Reset all generation impact counters to zero.
-    Requires the metrics password.
-    """
-    if not _check_password(req.password):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid password",
-        )
-    reset_counters(db)
-    ip = request.client.host if request.client else "unknown"
-    audit_log(action="reset_metrics", ip=ip, details="all generation impact counters reset")
-    return {"success": True, "message": "All impact metrics have been reset."}
 
 
 @router.post("/metrics/last-reset")

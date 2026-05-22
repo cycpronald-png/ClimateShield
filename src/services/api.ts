@@ -521,44 +521,6 @@ export const api = {
 
             return displayed;
         },
-        resetMetrics: async (password?: string) => {
-            if (password !== "Climate012220ShielD") {
-                throw new Error("Invalid password");
-            }
-            try {
-                const response = await fetch(`${DATA_BASE}state.json`).catch(() => null);
-                if (response && response.ok) {
-                    const stateData = await response.json();
-                    localStorage.setItem("climateshield_metrics_offsets", JSON.stringify({
-                        hko_fetches: stateData.hko_fetches || 0,
-                        weather_readings: stateData.weather_readings || 0,
-                        wbt_calculations: stateData.wbt_calculations || 0,
-                        risk_scores: stateData.risk_scores || 0,
-                        alerts_generated: stateData.alerts_generated || 0,
-                        forecast_days: stateData.forecast_days || 0,
-                        warnings: stateData.warnings || 0,
-                        hne_checks: stateData.hne_checks || 0
-                    }));
-                } else {
-                    const cur = localStorage.getItem("climateshield_metrics");
-                    if (cur) localStorage.setItem("climateshield_metrics_offsets", cur);
-                }
-                localStorage.setItem("climateshield_metrics_reset", new Date().toISOString());
-                localStorage.setItem("climateshield_metrics", JSON.stringify({
-                    hko_fetches: 0,
-                    weather_readings: 0,
-                    wbt_calculations: 0,
-                    risk_scores: 0,
-                    alerts_generated: 0,
-                    forecast_days: 0,
-                    warnings: 0,
-                    hne_checks: 0
-                }));
-            } catch (e) {
-                console.warn(e);
-            }
-            return { success: true };
-        },
         getLastReset: async () => {
             try {
                 const resetAt = localStorage.getItem("climateshield_metrics_reset");
@@ -566,12 +528,6 @@ export const api = {
             } catch {
                 return { last_reset_at: null };
             }
-        },
-        verifyPassword: async (password?: string) => {
-            if (password === "Climate012220ShielD") {
-                return { valid: true };
-            }
-            throw new Error("Invalid password");
         }
     },
     agents: {
