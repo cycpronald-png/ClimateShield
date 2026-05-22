@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings as SettingsIcon, Monitor, Key, Trash2, Download, Upload, Activity, Wifi, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Monitor, Key, Download, Upload, Activity, Wifi, AlertTriangle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { toast } from 'sonner';
 import { api } from '@/services/api';
-import { ConfirmDialog } from './settings/components/ConfirmDialog';
 import { ThemeToggle } from './settings/components/ThemeToggle';
 import { MetricsPanel } from './settings/components/MetricsPanel';
 import { RiskFormulaPanel } from './settings/components/RiskFormulaPanel';
@@ -14,12 +12,6 @@ export default function Settings() {
     const [metrics, setMetrics] = useState<Record<string, number> | null>(null);
     const [metricsLoading, setMetricsLoading] = useState(false);
     const [lastResetAt, setLastResetAt] = useState<string | null>(null);
-    const [resetDialogOpen, setResetDialogOpen] = useState(false);
-    const [resetPassword, setResetPassword] = useState('');
-    const [resetLoading, setResetLoading] = useState(false);
-    const [clearCacheDialogOpen, setClearCacheDialogOpen] = useState(false);
-    const [clearCachePassword, setClearCachePassword] = useState('');
-    const [clearCacheLoading, setClearCacheLoading] = useState(false);
     const [importing, setImporting] = useState(false);
     const [openMeteoBeta, setOpenMeteoBeta] = useState(() => localStorage.getItem("climateshield_openmeteo_beta") === "true");
     const [lanAccessEnabled, setLanAccessEnabled] = useState(() => localStorage.getItem("climateshield_lan_access") === "true");
@@ -85,27 +77,6 @@ export default function Settings() {
         loadMetrics();
     }, []);
 
-    const handleClearCache = () => {
-        setClearCacheDialogOpen(true);
-    };
-
-    const handleConfirmClearCache = async () => {
-        if (clearCachePassword.trim() !== "Climate012220ShielD") {
-            toast.error("Invalid password");
-            return;
-        }
-        setClearCacheLoading(true);
-        try {
-            await api.weather.verifyPassword("Climate012220ShielD");
-            localStorage.clear();
-            window.location.reload();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : "Invalid password");
-        } finally {
-            setClearCacheLoading(false);
-        }
-    };
-
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
@@ -126,25 +97,6 @@ export default function Settings() {
             console.warn("Metrics load failed:", e instanceof Error ? e.message : e);
         } finally {
             setMetricsLoading(false);
-        }
-    };
-
-    const handleResetMetrics = async () => {
-        if (resetPassword.trim() !== "Climate012220ShielD") {
-            toast.error("Invalid password");
-            return;
-        }
-        setResetLoading(true);
-        try {
-            await api.weather.resetMetrics("Climate012220ShielD");
-            toast.success("Impact metrics reset");
-            setResetDialogOpen(false);
-            setResetPassword('');
-            await loadMetrics();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : "Invalid password");
-        } finally {
-            setResetLoading(false);
         }
     };
 
@@ -324,61 +276,17 @@ export default function Settings() {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between py-4">
-                            <div>
-                                <div className="font-medium text-red-600 dark:text-red-400">Reset Application</div>
-                                <div className="text-xs text-zinc-500">Clear all data, keys, and cached files. Irreversible.</div>
-                            </div>
-                            <button
-                                onClick={handleClearCache}
-                                className="flex items-center gap-2 px-3 py-1.5 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-xs font-medium transition-colors"
-                            >
-                                <Trash2 className="w-3 h-3" />
-                                Reset All Data
-                            </button>
-                        </div>
                     </div>
 
                     <MetricsPanel
                         metrics={metrics}
                         loading={metricsLoading}
                         lastResetAt={lastResetAt}
-                        onResetClick={() => setResetDialogOpen(true)}
                     />
                     </>
                 )}
                 </div>
             </div>
-
-            <ConfirmDialog
-                open={resetDialogOpen}
-                title="Reset Impact Metrics?"
-                description="This will permanently reset all cumulative counters to zero. This action cannot be undone."
-                confirmLabel="Confirm Reset"
-                confirmLoadingLabel="Resetting..."
-                passwordLabel="Confirm by entering the metrics password"
-                passwordPlaceholder="Metrics password"
-                password={resetPassword}
-                onPasswordChange={setResetPassword}
-                onCancel={() => { setResetDialogOpen(false); setResetPassword(''); }}
-                onConfirm={handleResetMetrics}
-                loading={resetLoading}
-            />
-
-            <ConfirmDialog
-                open={clearCacheDialogOpen}
-                title="Reset Application?"
-                description="This will clear all data, keys, and cached files from this device. This action cannot be undone."
-                confirmLabel="Confirm Reset"
-                confirmLoadingLabel="Resetting..."
-                passwordLabel="Confirm by entering the admin password"
-                passwordPlaceholder="Admin password"
-                password={clearCachePassword}
-                onPasswordChange={setClearCachePassword}
-                onCancel={() => { setClearCacheDialogOpen(false); setClearCachePassword(''); }}
-                onConfirm={handleConfirmClearCache}
-                loading={clearCacheLoading}
-            />
         </div>
     );
 }

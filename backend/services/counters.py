@@ -2,7 +2,7 @@
 Generation Counters Service
 Tracks cumulative lifetime totals for backend data-processing KPIs.
 """
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -64,15 +64,3 @@ def get_last_reset_at(db: Session) -> Optional[datetime]:
         .first()
     )
     return row.reset_at if row else None
-
-
-def reset_counters(db: Session) -> None:
-    """Reset all generation counters to zero and log the reset time."""
-    for name in COUNTER_NAMES:
-        row = db.query(models.GenerationCounter).filter_by(name=name).first()
-        if row:
-            row.total = 0
-        else:
-            db.add(models.GenerationCounter(name=name, total=0))
-    db.add(models.CounterResetLog(reset_at=datetime.now(timezone.utc)))
-    db.commit()

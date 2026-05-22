@@ -1,10 +1,9 @@
-import { BarChart3, Trash2, CloudDownload, CloudSun, Flame, ShieldAlert, Bell, CalendarDays, AlertTriangle, Sun, type LucideIcon } from 'lucide-react';
+import { BarChart3, CloudDownload, CloudSun, Flame, ShieldAlert, Bell, CalendarDays, AlertTriangle, Sun, type LucideIcon } from 'lucide-react';
 
 interface MetricsPanelProps {
     metrics: Record<string, number> | null;
     loading: boolean;
     lastResetAt: string | null;
-    onResetClick: () => void;
 }
 
 const METRIC_LABELS: Record<string, string> = {
@@ -29,7 +28,7 @@ const METRIC_ICONS: Record<string, LucideIcon> = {
     hne_checks: Sun,
 };
 
-export function MetricsPanel({ metrics, loading, lastResetAt, onResetClick }: MetricsPanelProps) {
+export function MetricsPanel({ metrics, loading, lastResetAt }: MetricsPanelProps) {
     return (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
@@ -64,15 +63,6 @@ export function MetricsPanel({ metrics, loading, lastResetAt, onResetClick }: Me
                                 </div>
                             );
                         })}
-                    </div>
-                    <div className="flex justify-end">
-                        <button
-                            onClick={onResetClick}
-                            className="flex items-center gap-2 px-4 py-2 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Reset Statistics
-                        </button>
                     </div>
                 </div>
             ) : (
