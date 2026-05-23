@@ -59,41 +59,33 @@
   ],
   "forward": [
     {
-      "date": "20260523",
+      "date": "20260524",
       "type": "forecast",
       "composite_risk_score": 22.0,
       "risk_level": "Yellow",
-      "wbt": 29.0,
-      "hne": 14.0
-    },
-    {
-      "date": "20260524",
-      "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
-      "wbt": 29.0,
+      "wbt": 28.6,
       "hne": 14.0
     },
     {
       "date": "20260525",
       "type": "forecast",
-      "composite_risk_score": 20.0,
-      "risk_level": "Yellow",
-      "wbt": 28.19,
+      "composite_risk_score": 26.0,
+      "risk_level": "Purple",
+      "wbt": 28.6,
       "hne": 14.0
     },
     {
       "date": "20260526",
       "type": "forecast",
-      "composite_risk_score": 22.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 26.0,
+      "risk_level": "Purple",
       "wbt": 28.7,
       "hne": 16.0
     },
     {
       "date": "20260527",
       "type": "forecast",
-      "composite_risk_score": 26.0,
+      "composite_risk_score": 30.0,
       "risk_level": "Purple",
       "wbt": 28.7,
       "hne": 16.0
@@ -101,7 +93,7 @@
     {
       "date": "20260528",
       "type": "forecast",
-      "composite_risk_score": 26.0,
+      "composite_risk_score": 30.0,
       "risk_level": "Purple",
       "wbt": 28.7,
       "hne": 16.0
@@ -109,17 +101,17 @@
     {
       "date": "20260529",
       "type": "forecast",
-      "composite_risk_score": 8.0,
+      "composite_risk_score": 0.0,
       "risk_level": "Safe",
-      "wbt": 29.4,
-      "hne": 14.0
+      "wbt": 29.95,
+      "hne": 16.0
     },
     {
       "date": "20260530",
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 27.87,
+      "wbt": 27.49,
       "hne": 10.0
     },
     {
@@ -127,7 +119,15 @@
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 28.06,
+      "wbt": 27.49,
+      "hne": 10.0
+    },
+    {
+      "date": "20260601",
+      "type": "forecast",
+      "composite_risk_score": 8.0,
+      "risk_level": "Safe",
+      "wbt": 28.44,
       "hne": 12.0
     }
   ]
