@@ -202,18 +202,18 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
     return (
         <Card className="border-zinc-200 dark:border-zinc-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    14-Day Risk Outlook
-                </CardTitle>
-                {forecastRangeLabel && (
-                    <p className="text-xs text-zinc-500 mt-1">
-                        {forecastRangeLabel}
-                    </p>
-                )}
-            </div>
-            <div className="flex gap-1">
+                <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        14-Day Risk Outlook
+                    </CardTitle>
+                    {forecastRangeLabel && (
+                        <p className="text-xs text-zinc-500 mt-1">
+                            {forecastRangeLabel}
+                        </p>
+                    )}
+                </div>
+                <div className="flex gap-1">
                     {(['full', 'chart', 'actions'] as const).map((mode) => (
                         <Button
                             key={mode}

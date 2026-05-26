@@ -1,3 +1,5 @@
+const LOCAL_NOON_HOUR = 12;
+
 function pad2(value: number): string {
   return value.toString().padStart(2, "0");
 }
@@ -15,7 +17,7 @@ export function parseDateKey(dateKey: string): Date | null {
   const month = Number(dateKey.slice(4, 6));
   const day = Number(dateKey.slice(6, 8));
 
-  return new Date(year, month - 1, day, 12, 0, 0, 0);
+  return new Date(year, month - 1, day, LOCAL_NOON_HOUR, 0, 0, 0);
 }
 
 export function shiftDateKey(dateKey: string, offsetDays: number): string | null {
