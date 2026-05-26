@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WarningsCard } from '@/sections/risk-intelligence/components/WarningsCard';
 import { AlertTriangle, RefreshCw, Info,  } from 'lucide-react';
+import { normalizeTrendDates } from '@/lib/localDates';
 
 export default function RiskIntelligence() {
     const { read, write } = useOfflineCache();
@@ -70,7 +71,7 @@ export default function RiskIntelligence() {
             setForecast(Array.isArray(forecastData) ? forecastData : []);
             const backward = (trendsData?.backward || []).map((t: any) => ({ ...t, type: 'history' as const }));
             const forward = (trendsData?.forward || []).map((t: any) => ({ ...t, type: 'forecast' as const }));
-            setTrends([...backward, ...forward]);
+            setTrends(normalizeTrendDates([...backward, ...forward]));
             if (riskCfg) setRiskConfig(riskCfg);
         } catch (e) {
             console.error('RiskIntelligence fetch error:', e);

@@ -1,12 +1,14 @@
 import { useCallback } from 'react';
+import { getLocalDateKey } from '@/lib/localDates';
 
 const CACHE_KEY_PREFIX = "climateshield_cache_";
-const CACHE_VERSION = 2; // Increment when schema changes to invalidate stale cached data
+const CACHE_VERSION = 3; // Increment when schema changes to invalidate stale cached data
 
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
   version: number;
+  dayKey: string;
 }
 
 export interface CacheResult<T> {
@@ -21,7 +23,7 @@ export function useOfflineCache() {
       if (!raw) return null;
       const entry = JSON.parse(raw) as CacheEntry<T>;
       // Auto-invalidate stale cache entries from older schema versions
-      if (entry.version !== CACHE_VERSION) {
+      if (entry.version !== CACHE_VERSION || entry.dayKey !== getLocalDateKey()) {
         sessionStorage.removeItem(CACHE_KEY_PREFIX + key);
         return null;
       }
@@ -33,7 +35,12 @@ export function useOfflineCache() {
 
   const write = useCallback(<T>(key: string, data: T): void => {
     try {
-      const entry: CacheEntry<T> = { data, timestamp: Date.now(), version: CACHE_VERSION };
+      const entry: CacheEntry<T> = {
+        data,
+        timestamp: Date.now(),
+        version: CACHE_VERSION,
+        dayKey: getLocalDateKey(),
+      };
       sessionStorage.setItem(CACHE_KEY_PREFIX + key, JSON.stringify(entry));
     } catch {
       // sessionStorage may be full — silently fail
