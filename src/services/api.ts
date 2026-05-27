@@ -1,4 +1,11 @@
+import { getLocalDateKey, normalizeForecastDates } from '@/lib/localDates';
+
 const DATA_BASE = import.meta.env.BASE_URL + 'data/';
+
+function withDailyCacheBust(path: string): string {
+    const separator = path.includes('?') ? '&' : '?';
+    return `${path}${separator}day=${getLocalDateKey()}`;
+}
 
 // Client-side WBT calculator
 function calculateWbt(t_air_c: number, rh_percent: number, p_station_hpa: number = 1013.25): number {
@@ -134,7 +141,7 @@ async function getActiveRiskConfig(): Promise<any> {
             console.error("Failed to parse saved config", e);
         }
     }
-    const stateRes = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+    const stateRes = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
     if (stateRes && stateRes.ok) {
         try {
             const stateData = await stateRes.json();
@@ -283,18 +290,18 @@ export const api = {
     },
     weather: {
         getCurrent: async () => {
-            const response = await fetch(`${DATA_BASE}current.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));
             if (!response.ok) throw new Error("Failed to fetch current weather");
             return response.json();
         },
         getForecast: async () => {
-            const response = await fetch(`${DATA_BASE}forecast.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}forecast.json`));
             if (!response.ok) throw new Error("Failed to fetch forecast");
-            const forecastDays = await response.json();
+            const forecastDays = normalizeForecastDates(await response.json());
             
             const config = await getActiveRiskConfig();
             
-            const stateRes = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+            const stateRes = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
             const stateData = stateRes && stateRes.ok ? await stateRes.json() : {};
             let projStreak = stateData.consecutive_hot_nights || 0;
             
@@ -315,39 +322,39 @@ export const api = {
             });
         },
         getRisks: async () => {
-            const response = await fetch(`${DATA_BASE}current.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));
             if (!response.ok) throw new Error("Failed to fetch risk outlook");
             return response.json();
         },
         getWarnings: async () => {
-            const response = await fetch(`${DATA_BASE}warnings.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`));
             if (!response.ok) throw new Error("Failed to fetch warnings");
             return response.json();
         },
         getHistory: async () => {
-            const response = await fetch(`${DATA_BASE}history.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}history.json`));
             if (!response.ok) throw new Error("Failed to fetch weather history");
             return response.json();
         },
         getHistoricalReadings: async (station: string, hours: number = 12) => {
-            const response = await fetch(`${DATA_BASE}readings.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}readings.json`));
             if (!response.ok) throw new Error("Failed to fetch historical readings");
             const all = await response.json();
             const filtered = (all || []).filter((r: any) => r.station === station).slice(0, hours);
             return { readings: filtered };
         },
         getLiveScore: async (station: string) => {
-            const response = await fetch(`${DATA_BASE}current.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));
             if (!response.ok) throw new Error("Failed to fetch live risk score");
             const all = await response.json();
             const found = (all || []).find((r: any) => r.station === station);
             
             const config = await getActiveRiskConfig();
 
-            const warningsRes = await fetch(`${DATA_BASE}warnings.json`).catch(() => null);
+            const warningsRes = await fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`)).catch(() => null);
             const warnings = warningsRes && warningsRes.ok ? await warningsRes.json() : [];
             
-            const stateRes2 = await fetch(`${DATA_BASE}state.json`).catch(() => null);
+            const stateRes2 = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
             const stateData2 = stateRes2 && stateRes2.ok ? await stateRes2.json() : {};
             const consecutive = stateData2.consecutive_hot_nights || 0;
 
@@ -378,7 +385,7 @@ export const api = {
             // 1. Fetch backward history trends from trends.json (if ok) or history.json
             let backward: any[] = [];
             try {
-                const response = await fetch(`${DATA_BASE}trends.json`);
+                const response = await fetch(withDailyCacheBust(`${DATA_BASE}trends.json`));
                 if (response.ok) {
                     const trendsData = await response.json();
                     backward = (trendsData.backward || []).map((t: any) => {
@@ -390,7 +397,7 @@ export const api = {
                         };
                     });
                 } else {
-                    const historyRes = await fetch(`${DATA_BASE}history.json`).then(r => r.json());
+                    const historyRes = await fetch(withDailyCacheBust(`${DATA_BASE}history.json`)).then(r => r.json());
                     backward = (historyRes.history || []).map((h: any, idx: number) => {
                         const d = new Date();
                         d.setDate(d.getDate() - idx);
@@ -438,7 +445,7 @@ export const api = {
             return getActiveRiskConfig();
         },
         getUnreadAlerts: async () => {
-            const response = await fetch(`${DATA_BASE}warnings.json`);
+            const response = await fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`));
             if (!response.ok) return [];
             const all = await response.json();
             return (all || []).map((w: any, i: number) => ({ ...w, id: i, acknowledged: false }));
@@ -458,7 +465,7 @@ export const api = {
                 hne_checks: 0
             };
             try {
-                const response = await fetch(`${DATA_BASE}state.json`);
+                const response = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`));
                 if (response.ok) {
                     const stateData = await response.json();
                     base = {

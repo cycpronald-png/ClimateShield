@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, AlertTriangle, Droplets, Users, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react';
 import type { WeatherForecastDay } from '../types';
 import { stateFromScore, ACTION_MAP, RESOURCE_MAP, MAX_RISK_SCORE } from '../utils/riskStates';
+import { formatDateKey } from '@/lib/localDates';
 
 interface ForecastDashboardProps {
     forecast: WeatherForecastDay[];
@@ -183,6 +184,11 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
         };
     }, [chartData, riskConfig]);
 
+    const forecastRangeLabel = useMemo(() => {
+        if (chartData.length === 0) return null;
+        return `${formatDateKey(chartData[0].rawDate)} to ${formatDateKey(chartData[chartData.length - 1].rawDate)}`;
+    }, [chartData]);
+
     if (forecast.length === 0) {
         return (
             <Card className="border-zinc-200 dark:border-zinc-800">
@@ -196,10 +202,17 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
     return (
         <Card className="border-zinc-200 dark:border-zinc-800">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    14-Day Risk Outlook
-                </CardTitle>
+                <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        14-Day Risk Outlook
+                    </CardTitle>
+                    {forecastRangeLabel && (
+                        <p className="text-xs text-zinc-500 mt-1">
+                            {forecastRangeLabel}
+                        </p>
+                    )}
+                </div>
                 <div className="flex gap-1">
                     {(['full', 'chart', 'actions'] as const).map((mode) => (
                         <Button
