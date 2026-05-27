@@ -1,8 +1,10 @@
+import type { WeatherForecastDay } from '@/sections/risk-intelligence/types';
+
 const DATA_BASE = import.meta.env.BASE_URL + 'data/';
 
-const getCacheBustedDataUrl = (fileName: string, target: "default" | "14d" = "default"): string => {
+const getCacheBustedDataUrl = (fileName: string): string => {
     const timestamp = Date.now();
-    return `${DATA_BASE}${fileName}?target=${target}&v=${timestamp}`;
+    return `${DATA_BASE}${fileName}?v=${timestamp}`;
 };
 
 const getOpenMeteoBetaFlag = (): boolean => {
@@ -13,9 +15,9 @@ const getOpenMeteoBetaFlag = (): boolean => {
     }
 };
 
-export const fetchRiskOutlook = async (useBeta14Day: boolean): Promise<any[]> => {
+export const fetchRiskOutlook = async (useBeta14Day: boolean): Promise<WeatherForecastDay[]> => {
     const fileName = useBeta14Day ? "forecast_14day.json" : "forecast.json";
-    const response = await fetch(getCacheBustedDataUrl(fileName, useBeta14Day ? "14d" : "default"));
+    const response = await fetch(getCacheBustedDataUrl(fileName));
     if (!response.ok) {
         if (useBeta14Day) {
             const fallbackResponse = await fetch(getCacheBustedDataUrl("forecast.json"));
