@@ -1,6 +1,8 @@
 import type { WeatherForecastDay } from '@/sections/risk-intelligence/types';
 
 const DATA_BASE = import.meta.env.BASE_URL + 'data/';
+const FORECAST_FILE = "forecast.json";
+const FORECAST_14DAY_FILE = "forecast_14day.json";
 
 const getCacheBustedDataUrl = (fileName: string): string => {
     const timestamp = Date.now();
@@ -16,11 +18,11 @@ const getOpenMeteoBetaFlag = (): boolean => {
 };
 
 export const fetchRiskOutlook = async (useBeta14Day: boolean): Promise<WeatherForecastDay[]> => {
-    const fileName = useBeta14Day ? "forecast_14day.json" : "forecast.json";
+    const fileName = useBeta14Day ? FORECAST_14DAY_FILE : FORECAST_FILE;
     const response = await fetch(getCacheBustedDataUrl(fileName));
     if (!response.ok) {
         if (useBeta14Day) {
-            const fallbackResponse = await fetch(getCacheBustedDataUrl("forecast.json"));
+            const fallbackResponse = await fetch(getCacheBustedDataUrl(FORECAST_FILE));
             if (!fallbackResponse.ok) throw new Error("Failed to fetch forecast");
             return fallbackResponse.json();
         }
