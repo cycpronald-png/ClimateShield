@@ -23,6 +23,10 @@ function formatDate(d: string): string {
 }
 
 export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: ForecastDashboardProps) {
+    // NOTE: Forecast scores represent baseline risk without current active warnings
+    // This differs from Live Risk Scores in ClimateShield Risk Assessment which include
+    // active warning multipliers (T8, typhoon, rainstorm, etc.). Compare against "Live Risk Score"
+    // for current conditions to understand warning impact.
     const [viewMode, setViewMode] = useState<'full' | 'chart' | 'actions'>('full');
     const [actionsExpanded, setActionsExpanded] = useState(true);
 
@@ -205,7 +209,7 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
                 <div>
                     <CardTitle className="text-lg flex items-center gap-2">
                         <TrendingUp className="w-5 h-5" />
-                        14-Day Risk Outlook
+                        14-Day Forecast Risk Outlook
                     </CardTitle>
                     {forecastRangeLabel && (
                         <p className="text-xs text-zinc-500 mt-1">
