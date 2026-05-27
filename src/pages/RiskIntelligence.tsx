@@ -50,8 +50,8 @@ export default function RiskIntelligence() {
         try {
             const [currentData, forecastData, trendsData, riskCfg] = await Promise.all([
                 api.weather.getCurrent().catch(() => []),
-                api.weather.getForecast().catch(() => []),
-                api.weather.getTrends().catch(() => ({ backward: [], forward: [] })),
+                api.weather.getForecast(openMeteoBeta).catch(() => []),
+                api.weather.getTrends(openMeteoBeta).catch(() => ({ backward: [], forward: [] })),
                 api.weather.getRiskConfig().catch(() => null),
             ]);
             const ALLOWED_STATIONS = [

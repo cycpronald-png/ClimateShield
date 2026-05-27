@@ -1,5 +1,32 @@
 const DATA_BASE = import.meta.env.BASE_URL + 'data/';
 
+const getCacheBustedDataUrl = (fileName: string, target: "default" | "14d" = "default"): string => {
+    const timestamp = Date.now();
+    return `${DATA_BASE}${fileName}?target=${target}&v=${timestamp}`;
+};
+
+const getOpenMeteoBetaFlag = (): boolean => {
+    try {
+        return localStorage.getItem("climateshield_openmeteo_beta") === "true";
+    } catch {
+        return false;
+    }
+};
+
+export const fetchRiskOutlook = async (useBeta14Day: boolean): Promise<any[]> => {
+    const fileName = useBeta14Day ? "forecast_14day.json" : "forecast.json";
+    const response = await fetch(getCacheBustedDataUrl(fileName, useBeta14Day ? "14d" : "default"));
+    if (!response.ok) {
+        if (useBeta14Day) {
+            const fallbackResponse = await fetch(getCacheBustedDataUrl("forecast.json"));
+            if (!fallbackResponse.ok) throw new Error("Failed to fetch forecast");
+            return fallbackResponse.json();
+        }
+        throw new Error("Failed to fetch forecast");
+    }
+    return response.json();
+};
+
 // Client-side WBT calculator
 function calculateWbt(t_air_c: number, rh_percent: number, p_station_hpa: number = 1013.25): number {
     if (t_air_c === undefined || rh_percent === undefined) return 0;
@@ -287,10 +314,8 @@ export const api = {
             if (!response.ok) throw new Error("Failed to fetch current weather");
             return response.json();
         },
-        getForecast: async () => {
-            const response = await fetch(`${DATA_BASE}forecast.json`);
-            if (!response.ok) throw new Error("Failed to fetch forecast");
-            const forecastDays = await response.json();
+        getForecast: async (useBeta14Day: boolean = getOpenMeteoBetaFlag()) => {
+            const forecastDays = await fetchRiskOutlook(useBeta14Day);
             
             const config = await getActiveRiskConfig();
             
@@ -372,7 +397,7 @@ export const api = {
                 wet_bulb_temp_c: wbt
             };
         },
-        getTrends: async () => {
+        getTrends: async (useBeta14Day: boolean = getOpenMeteoBetaFlag()) => {
             const config = await getActiveRiskConfig();
             
             // 1. Fetch backward history trends from trends.json (if ok) or history.json
@@ -415,7 +440,7 @@ export const api = {
             // 2. Load forward forecast trends using weather.getForecast() (recalculated dynamically!)
             let forward: any[] = [];
             try {
-                const forecastDays = await api.weather.getForecast();
+                const forecastDays = await api.weather.getForecast(useBeta14Day);
                 forward = forecastDays.slice(0, 9).map((f: any) => {
                     const maxTemp = f.max_temp !== undefined ? f.max_temp : 30;
                     const hne = maxTemp >= 28 ? Number(((maxTemp - 25) * 2).toFixed(1)) : 0;
