@@ -45,8 +45,12 @@ jobs:
           
           git commit -m "chore(data): auto-update static weather data"
           
-          # Pull latest changes from remote to avoid divergent branches (race condition)
-          git pull --rebase origin main
+          # Pull latest changes from remote with conflict resolution
+          if ! git pull --rebase origin main; then
+            # If rebase fails due to conflicts, abort and use merge instead
+            git rebase --abort
+            git merge --strategy-option=theirs origin main
+          fi
           
           # Push the changes
           git push origin main
