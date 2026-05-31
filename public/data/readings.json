@@ -1,254 +1,254 @@
 [
   {
     "station": "Hong Kong Observatory",
-    "temp_c": 28.5,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 23.86,
-    "recorded_at": "2026-05-31T09:08:27.460635+00:00"
+    "temp_c": 27.5,
+    "humidity_pct": 72,
+    "wet_bulb_temp_c": 23.57,
+    "recorded_at": "2026-05-31T15:58:27.477257+00:00"
   },
   {
     "station": "Hong Kong Observatory",
-    "temp_c": 29.0,
-    "humidity_pct": 70,
+    "temp_c": 28.0,
+    "humidity_pct": 74,
+    "wet_bulb_temp_c": 24.33,
+    "recorded_at": "2026-05-31T14:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 28.5,
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 25.1,
+    "recorded_at": "2026-05-31T13:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 27.5,
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 24.46,
+    "recorded_at": "2026-05-31T12:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 28.0,
+    "humidity_pct": 72,
+    "wet_bulb_temp_c": 24.03,
+    "recorded_at": "2026-05-31T11:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 28.5,
+    "humidity_pct": 74,
+    "wet_bulb_temp_c": 24.79,
+    "recorded_at": "2026-05-31T10:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 27.5,
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 24.17,
+    "recorded_at": "2026-05-31T09:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 28.0,
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 24.93,
+    "recorded_at": "2026-05-31T08:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 28.5,
+    "humidity_pct": 72,
+    "wet_bulb_temp_c": 24.48,
+    "recorded_at": "2026-05-31T07:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 27.5,
+    "humidity_pct": 74,
+    "wet_bulb_temp_c": 23.87,
+    "recorded_at": "2026-05-31T06:58:27.477257+00:00"
+  },
+  {
+    "station": "Hong Kong Observatory",
+    "temp_c": 28.0,
+    "humidity_pct": 76,
     "wet_bulb_temp_c": 24.63,
-    "recorded_at": "2026-05-31T08:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T05:58:27.477257+00:00"
   },
   {
     "station": "Hong Kong Observatory",
-    "temp_c": 29.5,
-    "humidity_pct": 72,
+    "temp_c": 28.5,
+    "humidity_pct": 78,
     "wet_bulb_temp_c": 25.4,
-    "recorded_at": "2026-05-31T07:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T04:58:27.477257+00:00"
   },
   {
-    "station": "Hong Kong Observatory",
-    "temp_c": 28.5,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 24.79,
-    "recorded_at": "2026-05-31T06:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 29.0,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 24.31,
-    "recorded_at": "2026-05-31T05:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 29.5,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 25.08,
-    "recorded_at": "2026-05-31T04:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 28.5,
+    "station": "King's Park",
+    "temp_c": 26.5,
     "humidity_pct": 72,
-    "wet_bulb_temp_c": 24.48,
-    "recorded_at": "2026-05-31T03:08:27.460635+00:00"
+    "wet_bulb_temp_c": 22.65,
+    "recorded_at": "2026-05-31T15:58:27.477257+00:00"
   },
   {
-    "station": "Hong Kong Observatory",
-    "temp_c": 29.0,
+    "station": "King's Park",
+    "temp_c": 27.0,
     "humidity_pct": 74,
-    "wet_bulb_temp_c": 25.25,
-    "recorded_at": "2026-05-31T02:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 29.5,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 24.76,
-    "recorded_at": "2026-05-31T01:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 28.5,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 24.17,
-    "recorded_at": "2026-05-31T00:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 29.0,
-    "humidity_pct": 72,
-    "wet_bulb_temp_c": 24.94,
-    "recorded_at": "2026-05-30T23:08:27.460635+00:00"
-  },
-  {
-    "station": "Hong Kong Observatory",
-    "temp_c": 29.5,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 25.72,
-    "recorded_at": "2026-05-30T22:08:27.460635+00:00"
+    "wet_bulb_temp_c": 23.41,
+    "recorded_at": "2026-05-31T14:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
     "temp_c": 27.5,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 22.96,
-    "recorded_at": "2026-05-31T09:08:27.460635+00:00"
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 24.17,
+    "recorded_at": "2026-05-31T13:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
-    "temp_c": 28.0,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 23.72,
-    "recorded_at": "2026-05-31T08:08:27.460635+00:00"
+    "temp_c": 26.5,
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 23.53,
+    "recorded_at": "2026-05-31T12:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
-    "temp_c": 28.5,
+    "temp_c": 27.0,
     "humidity_pct": 72,
-    "wet_bulb_temp_c": 24.48,
-    "recorded_at": "2026-05-31T07:08:27.460635+00:00"
+    "wet_bulb_temp_c": 23.11,
+    "recorded_at": "2026-05-31T11:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
     "temp_c": 27.5,
     "humidity_pct": 74,
     "wet_bulb_temp_c": 23.87,
-    "recorded_at": "2026-05-31T06:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T10:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
-    "temp_c": 28.0,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 23.41,
-    "recorded_at": "2026-05-31T05:08:27.460635+00:00"
+    "temp_c": 26.5,
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 23.24,
+    "recorded_at": "2026-05-31T09:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
-    "temp_c": 28.5,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 24.17,
-    "recorded_at": "2026-05-31T04:08:27.460635+00:00"
+    "temp_c": 27.0,
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 23.99,
+    "recorded_at": "2026-05-31T08:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
     "temp_c": 27.5,
     "humidity_pct": 72,
     "wet_bulb_temp_c": 23.57,
-    "recorded_at": "2026-05-31T03:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T07:58:27.477257+00:00"
   },
   {
     "station": "King's Park",
+    "temp_c": 26.5,
+    "humidity_pct": 74,
+    "wet_bulb_temp_c": 22.95,
+    "recorded_at": "2026-05-31T06:58:27.477257+00:00"
+  },
+  {
+    "station": "King's Park",
+    "temp_c": 27.0,
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 23.7,
+    "recorded_at": "2026-05-31T05:58:27.477257+00:00"
+  },
+  {
+    "station": "King's Park",
+    "temp_c": 27.5,
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 24.46,
+    "recorded_at": "2026-05-31T04:58:27.477257+00:00"
+  },
+  {
+    "station": "Kai Tak Runway Park",
+    "temp_c": 27.5,
+    "humidity_pct": 72,
+    "wet_bulb_temp_c": 23.57,
+    "recorded_at": "2026-05-31T15:58:27.477257+00:00"
+  },
+  {
+    "station": "Kai Tak Runway Park",
     "temp_c": 28.0,
     "humidity_pct": 74,
     "wet_bulb_temp_c": 24.33,
-    "recorded_at": "2026-05-31T02:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T14:58:27.477257+00:00"
   },
   {
-    "station": "King's Park",
+    "station": "Kai Tak Runway Park",
     "temp_c": 28.5,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 23.86,
-    "recorded_at": "2026-05-31T01:08:27.460635+00:00"
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 25.1,
+    "recorded_at": "2026-05-31T13:58:27.477257+00:00"
   },
   {
-    "station": "King's Park",
+    "station": "Kai Tak Runway Park",
     "temp_c": 27.5,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 23.26,
-    "recorded_at": "2026-05-31T00:08:27.460635+00:00"
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 24.46,
+    "recorded_at": "2026-05-31T12:58:27.477257+00:00"
   },
   {
-    "station": "King's Park",
+    "station": "Kai Tak Runway Park",
     "temp_c": 28.0,
     "humidity_pct": 72,
     "wet_bulb_temp_c": 24.03,
-    "recorded_at": "2026-05-30T23:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T11:58:27.477257+00:00"
   },
   {
-    "station": "King's Park",
+    "station": "Kai Tak Runway Park",
     "temp_c": 28.5,
     "humidity_pct": 74,
     "wet_bulb_temp_c": 24.79,
-    "recorded_at": "2026-05-30T22:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T10:58:27.477257+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
     "temp_c": 27.5,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 22.96,
-    "recorded_at": "2026-05-31T09:08:27.460635+00:00"
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 24.17,
+    "recorded_at": "2026-05-31T09:58:27.477257+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
     "temp_c": 28.0,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 23.72,
-    "recorded_at": "2026-05-31T08:08:27.460635+00:00"
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 24.93,
+    "recorded_at": "2026-05-31T08:58:27.477257+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
     "temp_c": 28.5,
     "humidity_pct": 72,
     "wet_bulb_temp_c": 24.48,
-    "recorded_at": "2026-05-31T07:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T07:58:27.477257+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
     "temp_c": 27.5,
     "humidity_pct": 74,
     "wet_bulb_temp_c": 23.87,
-    "recorded_at": "2026-05-31T06:08:27.460635+00:00"
+    "recorded_at": "2026-05-31T06:58:27.477257+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
     "temp_c": 28.0,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 23.41,
-    "recorded_at": "2026-05-31T05:08:27.460635+00:00"
+    "humidity_pct": 76,
+    "wet_bulb_temp_c": 24.63,
+    "recorded_at": "2026-05-31T05:58:27.477257+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
     "temp_c": 28.5,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 24.17,
-    "recorded_at": "2026-05-31T04:08:27.460635+00:00"
-  },
-  {
-    "station": "Kai Tak Runway Park",
-    "temp_c": 27.5,
-    "humidity_pct": 72,
-    "wet_bulb_temp_c": 23.57,
-    "recorded_at": "2026-05-31T03:08:27.460635+00:00"
-  },
-  {
-    "station": "Kai Tak Runway Park",
-    "temp_c": 28.0,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 24.33,
-    "recorded_at": "2026-05-31T02:08:27.460635+00:00"
-  },
-  {
-    "station": "Kai Tak Runway Park",
-    "temp_c": 28.5,
-    "humidity_pct": 68,
-    "wet_bulb_temp_c": 23.86,
-    "recorded_at": "2026-05-31T01:08:27.460635+00:00"
-  },
-  {
-    "station": "Kai Tak Runway Park",
-    "temp_c": 27.5,
-    "humidity_pct": 70,
-    "wet_bulb_temp_c": 23.26,
-    "recorded_at": "2026-05-31T00:08:27.460635+00:00"
-  },
-  {
-    "station": "Kai Tak Runway Park",
-    "temp_c": 28.0,
-    "humidity_pct": 72,
-    "wet_bulb_temp_c": 24.03,
-    "recorded_at": "2026-05-30T23:08:27.460635+00:00"
-  },
-  {
-    "station": "Kai Tak Runway Park",
-    "temp_c": 28.5,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 24.79,
-    "recorded_at": "2026-05-30T22:08:27.460635+00:00"
+    "humidity_pct": 78,
+    "wet_bulb_temp_c": 25.4,
+    "recorded_at": "2026-05-31T04:58:27.477257+00:00"
   }
 ]
