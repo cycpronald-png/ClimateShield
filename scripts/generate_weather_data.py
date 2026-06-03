@@ -72,18 +72,25 @@ def compute_risk_score(wbt: float, consecutive_hot_nights: int, active_warnings:
     global risk_scores_count
     risk_scores_count += 1
     w = 0
+    # Walk bands in declared order; take the FIRST band that contains wbt.
+    # Bands should be contiguous and touching. If there's a gap, wbt in the
+    # gap falls through to w=0 (rather than overwriting w with the next band).
     for band in config["wbt_thresholds"]:
         in_band = True
         if "min_temp" in band and wbt < band["min_temp"]: in_band = False
         if "max_temp" in band and wbt > band["max_temp"]: in_band = False
-        if in_band: w = int(band["score"])
-    
+        if in_band:
+            w = int(band["score"])
+            break
+
     h = 0
     for band in config["hne_thresholds"]:
         in_band = True
         if "min_nights" in band and consecutive_hot_nights < band["min_nights"]: in_band = False
         if "max_nights" in band and consecutive_hot_nights > band["max_nights"]: in_band = False
-        if in_band: h = int(band["score"])
+        if in_band:
+            h = int(band["score"])
+            break
     
     vuln = config["vulnerability_config"]
     v = vuln["bonus"] if h >= vuln["trigger_h_score"] else 0
@@ -240,6 +247,19 @@ def main():
         with open(PUBLIC_DATA_DIR / "current.json", "w") as f:
             json.dump(current, f, indent=2)
 
+        # City-wide medians of the current snapshot — used for the "today" row
+        # of the forecast so it lines up with the Risk Assessment box.
+        def _median(xs):
+            xs = [x for x in xs if x is not None]
+            if not xs: return None
+            s = sorted(xs)
+            mid = len(s) // 2
+            return s[mid] if len(s) % 2 == 1 else (s[mid - 1] + s[mid]) / 2
+        current_wbt_values = [c.get("wet_bulb_temp_c") for c in current if c.get("wet_bulb_temp_c") is not None]
+        current_score_values = [c.get("composite_risk_score") for c in current if c.get("composite_risk_score") is not None]
+        today_median_wbt = _median(current_wbt_values)
+        today_median_score = _median(current_score_values)
+
         # Parse forecast data with enrichment
         forecast = []
         hko_forecast_days = fnd.get("weatherForecast", [])
@@ -248,18 +268,45 @@ def main():
             max_temp = d.get("forecastMaxtemp", {}).get("value")
             min_rh = d.get("forecastMinrh", {}).get("value")
             max_rh = d.get("forecastMaxrh", {}).get("value")
-            
+
             # Calculate WBT using peak conditions (max temp, max RH for worst case)
             wet_bulb_peak = calculate_wbt(max_temp, max_rh) if max_temp and max_rh else None
-            
+
+            # For the "today" row, use the city-wide current snapshot so the
+            # Outlook's first cell matches the Risk Assessment box (same data
+            # source). Days 1+ keep the predicted daily peak.
+            is_today = (idx == 0)
+            if is_today and today_median_wbt is not None:
+                wet_bulb_peak = today_median_wbt
+                wbt_for_scoring = today_median_wbt
+            else:
+                wbt_for_scoring = wet_bulb_peak or (calculate_wbt(max_temp, min_rh) if max_temp and min_rh else 0)
+
             # Calculate risk score for this forecast day using current HNE state
             score, risk_state = compute_risk_score(
-                wet_bulb_peak or calculate_wbt(max_temp, min_rh) if max_temp and min_rh else 0,
+                wbt_for_scoring,
                 state_data["consecutive_hot_nights"],
                 warnings,
                 DEFAULT_CONFIG
             )
-            
+
+            # Override the persisted score for "today" with the city-wide
+            # current median so the static forecast.json matches the live
+            # client-side recompute in getForecast().
+            if is_today and today_median_score is not None:
+                score = today_median_score
+                # Re-derive risk_state from the score with the same priority
+                # order the frontend uses.
+                score_round = round(score)
+                risk_state = "Safe"
+                for p_name in ["Purple", "Red", "Yellow", "Low", "Safe"]:
+                    for s_cfg in DEFAULT_CONFIG["state_ranges"]:
+                        if s_cfg["name"] == p_name and s_cfg["min"] <= score_round <= s_cfg["max"]:
+                            risk_state = p_name
+                            break
+                    if risk_state != "Safe":
+                        break
+
             forecast.append({
                 "forecast_date": d.get("forecastDate"),
                 "forecast_day_index": idx,
@@ -393,10 +440,11 @@ def main():
             "backward": [],
             "forward": []
         }
-        
+        trends_now = datetime.now(timezone.utc)
+
         # 1. Backward Trend (7 days history)
         for i in range(7):
-            day_ago = now - timedelta(days=7-i)
+            day_ago = trends_now - timedelta(days=7-i)
             date_str = day_ago.strftime("%Y%m%d")
             
             # Simulated history inputs
@@ -432,17 +480,23 @@ def main():
         for i, f in enumerate(forecast[:9]):
             max_rh_fb = f.get("max_rh") or 70
             min_rh_fb = f.get("min_rh") or 70
-            wbt_val = calculate_wbt(f["max_temp"], (max_rh_fb + min_rh_fb) / 2) or 25.0
-            
+            # For day 0, f["wet_bulb_peak"] is now the city-median current WBT
+            # (see the forecast loop above). Use it directly instead of averaging
+            # min/max rh, which would clobber the today-alignment fix.
+            if i == 0 and today_median_wbt is not None:
+                wbt_val = today_median_wbt
+            else:
+                wbt_val = calculate_wbt(f["max_temp"], (max_rh_fb + min_rh_fb) / 2) or 25.0
+
             if f.get("min_temp") is not None and f["min_temp"] >= 28.0:
                 proj_streak += 1
             else:
                 proj_streak = 0
-                
+
             crs_val, crs_state = compute_risk_score(
                 wbt_val,
                 proj_streak,
-                [],
+                warnings,
                 DEFAULT_CONFIG
             )
             

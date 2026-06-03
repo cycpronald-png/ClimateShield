@@ -32,13 +32,22 @@ function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: an
     // Step 1: W from wet-bulb temperature
     let w = 0;
     const wbtThresholds = config.wbt_thresholds || [];
+    // Walk in declared order; take the FIRST band that contains wbt. Bands
+    // should be contiguous (e.g. 0-21.9, 22-23.9, 24-26.9, 27-29.9, …) and
+    // touching; if there's a gap (e.g. 26.9 → 27 leaves 0.1 °C uncovered),
+    // the wbt in the gap falls through to w=0 rather than skipping to the
+    // next band. This used to produce wildly different scores depending on
+    // minute-by-minute WBT changes near the boundary.
     for (const band of wbtThresholds) {
         let inBand = true;
         if (band.min_temp !== undefined && wbt < band.min_temp) inBand = false;
         if (band.max_temp !== undefined && wbt > band.max_temp) inBand = false;
-        if (inBand) { w = Number(band.score); }
+        if (inBand) {
+            w = Number(band.score);
+            break;
+        }
     }
-    
+
     // Step 2: H from consecutive hot nights
     let h = 0;
     const hneThresholds = config.hne_thresholds || [];
@@ -46,7 +55,10 @@ function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: an
         let inBand = true;
         if (band.min_nights !== undefined && consecutive < band.min_nights) inBand = false;
         if (band.max_nights !== undefined && consecutive > band.max_nights) inBand = false;
-        if (inBand) { h = Number(band.score); }
+        if (inBand) {
+            h = Number(band.score);
+            break;
+        }
     }
     
     // Step 3: V - vulnerability
@@ -298,26 +310,90 @@ export const api = {
             const response = await fetch(withDailyCacheBust(`${DATA_BASE}forecast.json`));
             if (!response.ok) throw new Error("Failed to fetch forecast");
             const forecastDays = normalizeForecastDates(await response.json());
-            
+
             const config = await getActiveRiskConfig();
-            
+
             const stateRes = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
             const stateData = stateRes && stateRes.ok ? await stateRes.json() : {};
             let projStreak = stateData.consecutive_hot_nights || 0;
-            
+
+            // Pull current snapshot and active warnings so day-0 of the outlook
+            // uses the same data as the Risk Assessment box (avoids the
+            // "instantaneous vs predicted-peak" mismatch that made day-0 read
+            // 30/30 while the gauge read 18/30 for the same morning).
+            const [currentSnapshot, warningsSnapshot] = await Promise.all([
+                fetch(withDailyCacheBust(`${DATA_BASE}current.json`))
+                    .then(r => r.ok ? r.json() : [])
+                    .catch(() => [] as any[]),
+                fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`))
+                    .then(r => r.ok ? r.json() : [])
+                    .catch(() => [] as any[]),
+            ]);
+            const currentWbtValues = (currentSnapshot || [])
+                .map((r: any) => r.wet_bulb_temp_c)
+                .filter((v: any) => typeof v === 'number');
+            const currentScoreValues = (currentSnapshot || [])
+                .map((r: any) => r.composite_risk_score)
+                .filter((v: any) => typeof v === 'number');
+            const median = (xs: number[]) => {
+                if (xs.length === 0) return null;
+                const sorted = [...xs].sort((a, b) => a - b);
+                const mid = Math.floor(sorted.length / 2);
+                return sorted.length % 2 === 0
+                    ? (sorted[mid - 1] + sorted[mid]) / 2
+                    : sorted[mid];
+            };
+            const todayWbt = median(currentWbtValues);
+            const todayScore = median(currentScoreValues);
+
+            const todayKey = getLocalDateKey(); // YYYYMMDD in local time
+            const activeWarnings = Array.isArray(warningsSnapshot) ? warningsSnapshot : [];
+
             return forecastDays.map((f: any) => {
+                const isToday = f.forecast_date === todayKey;
+                let wbtVal: number;
+                if (isToday && todayWbt != null) {
+                    // Day 0 should mirror what the Risk Assessment box shows
+                    // (instantaneous city-median), not the predicted daily peak.
+                    wbtVal = todayWbt;
+                } else {
+                    wbtVal = f.wet_bulb_peak !== undefined
+                        ? f.wet_bulb_peak
+                        : calculateWbt(f.max_temp || 25, f.max_rh || f.min_rh || 70);
+                }
                 if (f.min_temp !== undefined && f.min_temp >= 28.0) {
                     projStreak += 1;
                 } else {
                     projStreak = 0;
                 }
-                const wbtVal = f.wet_bulb_peak !== undefined ? f.wet_bulb_peak : calculateWbt(f.max_temp || 25, f.max_rh || f.min_rh || 70);
-                const result = computeRiskScoreV2(wbtVal, projStreak, [], config);
+                let scoreValue: number;
+                let stateName: string;
+                if (isToday && todayScore != null) {
+                    // Reuse the persisted current.json score so the Outlook's
+                    // day-0 cell is byte-identical to the Risk Assessment
+                    // median; fall back to recompute if missing.
+                    scoreValue = todayScore;
+                    const ranges = config.state_ranges || [];
+                    const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
+                    stateName = "Safe";
+                    const rounded = Math.round(scoreValue);
+                    for (const pName of priorityOrder) {
+                        const r = ranges.find((x: any) => x.name === pName);
+                        if (r && rounded >= r.min && rounded <= r.max) {
+                            stateName = pName;
+                            break;
+                        }
+                    }
+                } else {
+                    const result = computeRiskScoreV2(wbtVal, projStreak, activeWarnings, config);
+                    scoreValue = result.value;
+                    stateName = result.state;
+                }
                 return {
                     ...f,
                     wet_bulb_peak: wbtVal,
-                    composite_risk_score: result.value,
-                    risk_level: result.state
+                    composite_risk_score: scoreValue,
+                    risk_level: stateName,
                 };
             });
         },
