@@ -173,7 +173,12 @@ export default function RiskIntelligence() {
                                 selectedStation={selectedStation}
                                 onStationSelect={setSelectedStation}
                             />
-                                            <WBTTimeSeriesGraph forecastDays={forecast} selectedStation={selectedStation} riskConfig={riskConfig} />
+                            <WBTTimeSeriesGraph
+                                forecastDays={forecast}
+                                selectedStation={selectedStation}
+                                riskConfig={riskConfig}
+                                currentReading={readings.find(r => r.station === selectedStation) ?? null}
+                            />
                         </div>
                         <div className="space-y-4">
                             {showExtendedWarning && (
@@ -227,7 +232,12 @@ export default function RiskIntelligence() {
                             selectedStation={selectedStation}
                             onStationSelect={setSelectedStation}
                         />
-                        <WBTTimeSeriesGraph forecastDays={forecast} selectedStation={selectedStation} riskConfig={riskConfig} />
+                        <WBTTimeSeriesGraph
+                            forecastDays={forecast}
+                            selectedStation={selectedStation}
+                            riskConfig={riskConfig}
+                            currentReading={readings.find(r => r.station === selectedStation) ?? null}
+                        />
                         {showExtendedWarning && (
                             <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-sm">
                                 <Info className="w-4 h-4 shrink-0 mt-0.5" />

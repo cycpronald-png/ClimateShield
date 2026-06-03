@@ -336,12 +336,13 @@ export const api = {
             if (!response.ok) throw new Error("Failed to fetch weather history");
             return response.json();
         },
-        getHistoricalReadings: async (station: string, hours: number = 12) => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}readings.json`));
-            if (!response.ok) throw new Error("Failed to fetch historical readings");
-            const all = await response.json();
-            const filtered = (all || []).filter((r: any) => r.station === station).slice(0, hours);
-            return { readings: filtered };
+        getHistoricalReadings: async (_station: string, _hours: number = 12) => {
+            // Deprecated: WBT Risk Timeline now reads the latest reading from current.json
+            // (same source as Risk Assessment) via `currentReading` prop. HKO's rhrread
+            // endpoint only provides instantaneous observations, so a 12-hour archive
+            // cannot be produced from open data without an hourly historical store.
+            // This stub is kept to avoid breaking any out-of-tree consumer.
+            return { readings: [] as any[], message: "Historical readings not available in static mode" };
         },
         getLiveScore: async (station: string) => {
             const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));

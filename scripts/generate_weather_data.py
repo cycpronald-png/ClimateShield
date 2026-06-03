@@ -338,35 +338,11 @@ def main():
         with open(PUBLIC_DATA_DIR / "forecast.json", "w") as f:
             json.dump(forecast, f, indent=2)
 
-        # Generate historical readings for WBT Risk Timeline
-        readings = []
-        key_stations = ['Hong Kong Observatory', "King's Park", 'Kai Tak Runway Park']
-        now = datetime.now(timezone.utc)
-        for station in key_stations:
-            # Find current data for this station if available
-            station_data = next((c for c in current if c["station"] == station), None)
-            base_temp = station_data["temp_c"] if station_data else 26
-            base_rh = station_data["humidity_pct"] if station_data else 80
-            base_wbt = station_data["wet_bulb_temp_c"] if station_data else calculate_wbt(base_temp, base_rh)
-            
-            # Generate 12 hours of synthetic history with slight variation
-            for h in range(12):
-                hour_ago = now - __import__('datetime').timedelta(hours=h+1)
-                # Add small random variation to simulate real readings
-                temp_var = base_temp + (h % 3) * 0.5 - 0.5
-                rh_var = max(30, min(100, base_rh + (h % 4) * 2 - 3))
-                wbt_var = calculate_wbt(temp_var, rh_var)
-                
-                readings.append({
-                    "station": station,
-                    "temp_c": round(temp_var, 1),
-                    "humidity_pct": round(rh_var, 1),
-                    "wet_bulb_temp_c": round(wbt_var, 2),
-                    "recorded_at": hour_ago.isoformat()
-                })
-        
-        with open(PUBLIC_DATA_DIR / "readings.json", "w") as f:
-            json.dump(readings, f, indent=2)
+        # Historical 12h readings for the WBT timeline are no longer synthesized.
+        # HKO's rhrread endpoint provides only instantaneous observations, so any
+        # generated "past 12h" series would be synthetic and could misalign with
+        # the live current.json snapshot that Risk Assessment uses. The WBT
+        # timeline now reads the latest reading from current.json directly.
 
         # Update and save HNE state.json (with embedded risk config for frontend)
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

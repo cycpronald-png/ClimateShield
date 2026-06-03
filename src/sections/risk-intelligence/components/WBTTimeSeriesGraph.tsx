@@ -5,22 +5,14 @@ import {
 } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { WeatherForecastDay } from '../types';
+import type { WeatherForecastDay, WeatherReading } from '../types';
 import { api } from '@/services/api';
 
 interface WBTTimeSeriesGraphProps {
     selectedStation: string;
     forecastDays: WeatherForecastDay[];
     riskConfig?: any;
-}
-
-interface HistoricalReading {
-    recorded_at: string;
-    station: string;
-    wet_bulb_temp_c: number;
-    temp_c?: number;
-    humidity_pct?: number;
-    composite_risk_score?: number;
+    currentReading?: WeatherReading | null;
 }
 
 /* ---------- Risk bands — finalized framework boundaries --------------- */
@@ -46,13 +38,6 @@ const OVERLAP_ZONES = [
 ];
 
 /* ---------- helpers --------------------------------------------------- */
-function pad2(n: number) { return n.toString().padStart(2, '0'); }
-
-function formatHHMM(iso: string): string {
-    const d = new Date(iso);
-    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-
 function formatDateDDMM(yyyymmdd: string): string {
     return `${yyyymmdd.slice(4, 6)}/${yyyymmdd.slice(6, 8)}`;
 }
@@ -87,59 +72,65 @@ function ChartLegend() {
             <span className="mx-1 text-zinc-600">|</span>
             <span className="flex items-center gap-1">
                 <span className="inline-block w-5 h-0.5 bg-white" />
-                <span className="text-zinc-400">Actual (past 12h)</span>
+                <span className="text-zinc-400">Current (now)</span>
             </span>
             <span className="flex items-center gap-1">
                 <span className="inline-block w-5 h-0 border-t-2 border-dashed border-emerald-400" />
-                <span className="text-zinc-400">Forecast</span>
+                <span className="text-zinc-400">Forecast (next 9 days)</span>
             </span>
         </div>
     );
 }
 
-export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }: WBTTimeSeriesGraphProps) {
-    const [history, setHistory] = useState<HistoricalReading[]>([]);
+export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig, currentReading }: WBTTimeSeriesGraphProps) {
+    const [liveScore, setLiveScore] = useState<{ wet_bulb_temp_c?: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchHistory = useCallback(async () => {
+    const fetchLiveScore = useCallback(async () => {
+        if (!selectedStation) return;
         setLoading(true);
         setError(null);
         try {
-            const data = await api.weather.getHistoricalReadings(selectedStation, 12);
-            setHistory(data.readings ?? []);
+            const data = await api.weather.getLiveScore(selectedStation);
+            setLiveScore(data);
         } catch (e) {
-            console.error('Failed to fetch historical readings:', e);
-            setError('Could not load historical data');
+            console.error('Failed to fetch live score:', e);
+            setError('Could not load current WBT');
         } finally {
             setLoading(false);
         }
     }, [selectedStation]);
 
     useEffect(() => {
-        fetchHistory();
-        const interval = setInterval(fetchHistory, 300000);
+        fetchLiveScore();
+        const interval = setInterval(fetchLiveScore, 300000);
         return () => clearInterval(interval);
-    }, [fetchHistory]);
+    }, [fetchLiveScore]);
 
-    /* Build chart data with separate fields for history vs forecast lines */
+    /* Build chart data: single "now" point from the same source as Risk Assessment,
+       then dashed forecast line for next 9 days. No synthetic history. */
     const chartData = useMemo(() => {
-        const historyPoints = history
-            .filter(r => r.wet_bulb_temp_c != null)
-            .sort((a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime())
-            .map(r => ({
-                time: formatHHMM(r.recorded_at),
-                wbt: r.wet_bulb_temp_c,
-                historyWbt: r.wet_bulb_temp_c,
-                forecastWbt: null as number | null,
-                type: 'history' as const,
-            }));
+        const now = Date.now();
+        const liveWbt = liveScore?.wet_bulb_temp_c;
+        const readingWbt = currentReading?.wet_bulb_temp_c;
+        const currentWbt = liveWbt ?? readingWbt;
+
+        if (currentWbt == null) return [];
+
+        const currentLabel = 'Now';
+        const historyPoint = {
+            time: currentLabel,
+            wbt: currentWbt,
+            historyWbt: currentWbt as number | null,
+            forecastWbt: currentWbt as number | null,
+            type: 'history' as const,
+        };
 
         const fc = forecastDays
             .filter(f => f.wet_bulb_peak != null)
             .sort((a, b) => a.forecast_day_index - b.forecast_day_index);
 
-        const now = Date.now();
         const next72 = now + 72 * 60 * 60 * 1000;
         const forecastPoints = fc
             .filter(day => {
@@ -156,12 +147,8 @@ export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }
                 type: 'forecast' as const,
             }));
 
-        if (historyPoints.length > 0) {
-            historyPoints[historyPoints.length - 1].forecastWbt = historyPoints[historyPoints.length - 1].wbt;
-        }
-
-        return [...historyPoints, ...forecastPoints];
-    }, [history, forecastDays]);
+        return [historyPoint, ...forecastPoints];
+    }, [liveScore, currentReading, forecastDays]);
 
     /* Derive visual bands from riskConfig */
     const bands = useMemo(() => {
@@ -204,7 +191,7 @@ export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }
         return out;
     }, [riskConfig]);
 
-    const currentPoint = [...chartData].reverse().find((d: { type: string }) => d.type === 'history');
+    const currentPoint = chartData.find((d: { type: string }) => d.type === 'history');
 
     if (loading) {
         return (
@@ -311,19 +298,8 @@ export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }
                             />
                         ))}
 
-                        {/* Historical line — solid white */}
-                        <Line
-                            type="monotone"
-                            dataKey="historyWbt"
-                            stroke="#ffffff"
-                            strokeWidth={2.5}
-                            dot={false}
-                            activeDot={{ r: 5, fill: '#fff', stroke: '#ef4444', strokeWidth: 2 }}
-                            connectNulls
-                            isAnimationActive={false}
-                        />
-
-                        {/* Forecast line — dashed emerald */}
+                        {/* Forecast line — dashed emerald. First point overlaps the "Now" dot,
+                            so the dashed line bridges seamlessly from the current reading. */}
                         <Line
                             type="monotone"
                             dataKey="forecastWbt"
@@ -336,7 +312,7 @@ export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }
                             isAnimationActive={false}
                         />
 
-                        {/* Current dot */}
+                        {/* Current dot — same source as ClimateShield Risk Assessment */}
                         {currentPoint && (
                             <ReferenceDot
                                 x={currentPoint.time}
