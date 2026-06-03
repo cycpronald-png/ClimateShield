@@ -156,6 +156,10 @@ export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }
                 type: 'forecast' as const,
             }));
 
+        if (historyPoints.length > 0) {
+            historyPoints[historyPoints.length - 1].forecastWbt = historyPoints[historyPoints.length - 1].wbt;
+        }
+
         return [...historyPoints, ...forecastPoints];
     }, [history, forecastDays]);
 
