@@ -140,14 +140,16 @@ export function WBTTimeSeriesGraph({ selectedStation, forecastDays, riskConfig }
             .sort((a, b) => a.forecast_day_index - b.forecast_day_index);
 
         const now = Date.now();
-        const next12 = now + 12 * 60 * 60 * 1000;
+        const next72 = now + 72 * 60 * 60 * 1000;
         const forecastPoints = fc
             .filter(day => {
-                const dayStart = new Date(day.forecast_date + 'T00:00:00+08:00').getTime();
-                return dayStart >= now && dayStart <= next12;
+                if (!day.forecast_date || day.forecast_date.length !== 8) return false;
+                const dStr = day.forecast_date;
+                const forecastTime = new Date(`${dStr.substring(0, 4)}-${dStr.substring(4, 6)}-${dStr.substring(6, 8)}T14:00:00+08:00`).getTime();
+                return forecastTime >= now - 12 * 60 * 60 * 1000 && forecastTime <= next72;
             })
             .map(day => ({
-                time: formatDateDDMM(day.forecast_date),
+                time: formatDateDDMM(day.forecast_date) + ' 14:00',
                 wbt: day.wet_bulb_peak!,
                 historyWbt: null as number | null,
                 forecastWbt: day.wet_bulb_peak!,
