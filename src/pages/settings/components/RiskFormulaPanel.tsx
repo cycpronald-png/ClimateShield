@@ -11,7 +11,6 @@ import { ConfirmDialog } from './ConfirmDialog';
 
 interface WbtBand { min_temp?: number; max_temp?: number; score: number; }
 interface HneBand { min_nights?: number; max_nights?: number; score: number; }
-interface StateBand { name: string; min: number; max: number; }
 
 interface RiskConfig {
   wbt_thresholds: WbtBand[];
@@ -19,7 +18,7 @@ interface RiskConfig {
   vulnerability_config: { trigger_h_score: number; bonus: number };
   warning_multipliers: Record<string, number>;
   t8_floor: { enabled: boolean; min_score: number };
-  state_ranges: StateBand[];
+  state_ranges: { name: string; min: number; max: number }[];
 }
 
 const DEFAULT_CONFIG: RiskConfig = {
@@ -169,7 +168,7 @@ export function RiskFormulaPanel() {
     if (!password) return;
     setSaving(true);
     try {
-      await api.admin.updateRiskConfig(password, config);
+      await api.admin.updateRiskConfig(password, config as unknown as Parameters<typeof api.admin.updateRiskConfig>[1]);
       setOriginalConfig(config);
       setHasChanges(false);
       toast.success('Risk configuration saved');
@@ -195,7 +194,7 @@ export function RiskFormulaPanel() {
   const handleTest = async () => {
     if (!password) return;
     try {
-      const result = await api.admin.testRiskConfig(password, config);
+      const result = await api.admin.testRiskConfig(password, config as unknown as Parameters<typeof api.admin.testRiskConfig>[1]);
       setTestResults(result.scenarios);
       setTestModalOpen(true);
     } catch (e: any) {

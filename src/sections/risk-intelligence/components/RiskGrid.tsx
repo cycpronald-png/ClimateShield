@@ -28,7 +28,7 @@ export function RiskGrid({ readings, selectedStationId, onStationSelect, onStati
     return (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {readings.map((r) => {
-                const riskColor = riskColorMap[r.risk_level] || 'bg-zinc-600';
+                const riskColor = riskColorMap[r.risk_level ?? 'Safe'] || 'bg-zinc-600';
                 const isSelected = selectedStationId === r.station;
                 return (
                     <button

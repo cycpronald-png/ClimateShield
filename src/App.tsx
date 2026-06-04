@@ -1,11 +1,13 @@
-import { Suspense, lazy, useState, useEffect } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from "./components/theme-provider"
 import { AppShell } from './components/layout/AppShell'
 import { Toaster } from 'sonner'
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { RetryProvider, useRetry } from "./context/RetryContext"
-import { OfflineBanner } from './components/OfflineBanner'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '@/services/queryClient'
+import { OnlineManager } from '@/components/OnlineManager'
+import { OfflineBannerWrapper } from './components/OfflineBannerWrapper'
 
 // Lazy Load Pages to isolate crashes
 const ControlPlane = lazy(() => import("./pages/ControlPlane"));
@@ -15,31 +17,16 @@ const Donate = lazy(() => import("./pages/donate/Donate"));
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 
-function OfflineBannerWrapper() {
-  const { triggerRetry } = useRetry();
-  const [offline, setOffline] = useState(!navigator.onLine);
-  useEffect(() => {
-    const on = () => setOffline(false);
-    const off = () => setOffline(true);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
-    };
-  }, []);
-  if (!offline) return null;
-  return <OfflineBanner lastSuccessfulFetch={null} onRetry={triggerRetry} />;
-}
-
 function App() {
+  const [, setRetryKey] = useState(0);
   return (
-    <RetryProvider>
+    <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <Toaster richColors position="bottom-right" />
         <TooltipProvider>
           <ErrorBoundary>
-            <OfflineBannerWrapper />
+            <OnlineManager />
+            <OfflineBannerWrapper onRetry={() => setRetryKey((k) => k + 1)} />
             <Router>
               <Suspense fallback={<div className="p-8 text-foreground/50">Loading Module...</div>}>
                 <Routes>
@@ -56,8 +43,8 @@ function App() {
           </ErrorBoundary>
         </TooltipProvider>
       </ThemeProvider>
-    </RetryProvider>
-  )
+    </QueryClientProvider>
+  );
 }
 
 export default App

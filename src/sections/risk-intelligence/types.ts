@@ -1,39 +1,20 @@
-export type RiskLevel = 'Safe' | 'Low' | 'Yellow' | 'Red' | 'Purple';
+/**
+ * Section-local aliases. The "real" contracts live in ``@/types/api``.
+ *
+ * These are kept here so existing components can import the names they
+ * are used to. New code should prefer importing from ``@/types/api``
+ * directly so a single source of truth is maintained.
+ */
+import type {
+    StateName,
+    WeatherForecastDay as ApiWeatherForecastDay,
+    WeatherReading as ApiWeatherReading,
+} from '@/types/api';
 
-export interface WeatherReading {
-    id: number;
-    station: string;
-    district?: string;
-    temp_c?: number;
-    humidity_pct?: number;
-    rainfall_mm?: number;
-    wind_kmh?: number;
-    wind_direction?: string;
-    uv_index?: number;
-    wet_bulb_temp_c?: number;
-    composite_risk_score?: number;
-    wet_bulb_peak?: number;
-    risk_level: string;
-    recorded_at: string; // ISO
-}
+export type RiskLevel = StateName;
 
-export interface WeatherForecastDay {
-    id?: number;
-    forecast_date: string;
-    forecast_day_index: number;
-    min_temp?: number;
-    max_temp?: number;
-    min_rh?: number;
-    max_rh?: number;
-    weather_desc?: string;
-    risk_level: string;
-    wind?: string;
-    psr?: string;
-    icon_code?: number;
-    composite_risk_score?: number;
-    wet_bulb_peak?: number;
-    source?: 'hko' | 'open_meteo';
-}
+export type WeatherReading = ApiWeatherReading;
+export type WeatherForecastDay = ApiWeatherForecastDay;
 
 export interface HotNightEntry {
     date: string;
@@ -97,8 +78,8 @@ export interface WeatherHistoryItem {
     peak_wbt?: number;
     peak_rh?: number;
     avg_rh?: number;
-    hne: number;
+    hne?: number;
     nightly_hne?: number;
-    composite_risk_score?: CompositeRiskScore;
-    risk_level: string;
+    composite_risk_score?: CompositeRiskScore | { value: number; state: string } | null;
+    risk_level?: string;
 }

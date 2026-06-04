@@ -77,7 +77,7 @@ export function StationDetailModal({ open, station, onClose }: StationDetailModa
                     <div>
                         <div className="text-xs text-muted-foreground uppercase tracking-wide">Risk Level</div>
                         <div className="text-lg font-bold">
-                            <Badge className={riskBadgeColors[station.risk_level] || 'bg-zinc-400 text-white'}>
+                            <Badge className={riskBadgeColors[station.risk_level ?? 'Safe'] || 'bg-zinc-400 text-white'}>
                                 {station.risk_level}
                             </Badge>
                         </div>
@@ -99,7 +99,7 @@ export function StationDetailModal({ open, station, onClose }: StationDetailModa
                 ) : (
                     <div className="space-y-2">
                         {history.map((item) => {
-                            const displayHne = item.nightly_hne ?? item.hne;
+                            const displayHne = item.nightly_hne ?? item.hne ?? 0;
                             const isExtreme = displayHne >= 17.7;
                             return (
                                 <div

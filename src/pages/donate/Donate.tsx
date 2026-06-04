@@ -47,12 +47,15 @@ export default function Donate() {
                 company: "N/A",
                 donation_type: "physical",
                 message: `Drop-off at: ${selectedLocation}`,
-                items: cart.map(item => ({
-                    item_name: DONATION_ITEMS.find(d => d.id === item.id)?.name ?? item.id,
-                    quantity: item.quantity,
-                    category: DONATION_ITEMS.find(d => d.id === item.id)?.category ?? "other",
-                    condition: "New"
-                }))
+                items: cart.map(item => {
+                    const meta = DONATION_ITEMS.find(d => d.id === item.id);
+                    return {
+                        item_type: meta?.id ?? item.id,
+                        quantity: item.quantity,
+                        delivery_method: 'dropoff',
+                        notes: `${meta?.name ?? item.id} (${meta?.category ?? 'other'})`,
+                    };
+                })
             });
             toast.success("Pledge submitted successfully!");
             setTimeout(() => { setCart([]); setSelectedLocation(""); setCurrentStep(2); setIsSubmitting(false); }, 2000);

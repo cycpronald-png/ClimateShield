@@ -1,14 +1,55 @@
+/**
+ * Frontend API client.
+ *
+ * Modes:
+ *  - Default (live): calls the FastAPI backend over ``VITE_API_BASE_URL``
+ *    (proxied by Vite to :8000 in dev, or served from the same origin in prod).
+ *  - Static (``VITE_STATIC_MODE=1``): reads bundled JSON files under
+ *    ``public/data/`` — useful for GitHub Pages previews where there is no
+ *    backend. Off by default so production deployments hit the live API.
+ */
 import { getLocalDateKey, normalizeForecastDates } from '@/lib/localDates';
+import type {
+  DonationPledge,
+  DonationPledgeResponse,
+  LiveRiskScore,
+  RiskConfig,
+  StateName,
+  SystemAlert,
+  WeatherForecastDay,
+  WeatherReading,
+  WeatherWarning,
+} from '@/types/api';
 
-const DATA_BASE = import.meta.env.BASE_URL + 'data/';
+const STATIC_MODE = import.meta.env.VITE_STATIC_MODE === '1';
+const API_BASE: string =
+  import.meta.env.VITE_API_BASE_URL ?? import.meta.env.BASE_URL ?? '/';
+const STATIC_BASE = (import.meta.env.BASE_URL ?? '/') + 'data/';
 
 function withDailyCacheBust(path: string): string {
     const separator = path.includes('?') ? '&' : '?';
     return `${path}${separator}day=${getLocalDateKey()}`;
 }
 
-// Client-side WBT calculator
-function calculateWbt(t_air_c: number, rh_percent: number, p_station_hpa: number = 1013.25): number {
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+    const url = path.startsWith('http') ? path : `${API_BASE.replace(/\/$/, '')}${path}`;
+    const res = await fetch(url, init);
+    if (!res.ok) {
+        throw new Error(`API ${res.status} ${res.statusText} for ${url}`);
+    }
+    return (await res.json()) as T;
+}
+
+// --------------------------------------------------------------------------- //
+// Pure functions (live-backend parity)                                       //
+// --------------------------------------------------------------------------- //
+
+/** Client-side WBT calculator — matches backend/services/climate/wbt.py */
+export function calculateWbt(
+    t_air_c: number,
+    rh_percent: number,
+    p_station_hpa: number = 1013.25,
+): number {
     if (t_air_c === undefined || rh_percent === undefined) return 0;
     const T = t_air_c;
     const RH = rh_percent;
@@ -19,7 +60,7 @@ function calculateWbt(t_air_c: number, rh_percent: number, p_station_hpa: number
     let Tw = T;
     for (let i = 0; i < 15; i++) {
         const e_w = 6.112 * Math.exp((17.67 * Tw) / (Tw + 243.5));
-        const de_w_dTw = e_w * (17.67 * 243.5) / Math.pow(Tw + 243.5, 2);
+        const de_w_dTw = (e_w * 17.67 * 243.5) / Math.pow(Tw + 243.5, 2);
         const f = e_w - gamma * (T - Tw) - e;
         const df_dTw = de_w_dTw + gamma;
         Tw = Tw - f / df_dTw;
@@ -27,18 +68,45 @@ function calculateWbt(t_air_c: number, rh_percent: number, p_station_hpa: number
     return Number(Tw.toFixed(2));
 }
 
-// Client-side risk scoring calculator matching backend compute_risk_score + 2x amplification
-function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: any[], config: any) {
+// Word-boundary regexes mirror backend scoring_v2.py
+const T8_TYPE_RE = /\b(?:signal no\.?\s*8|gale or storm signal no\.?\s*8)\b/i;
+const T8_SIGNAL_RE = /^t8$/i;
+
+function isT8(warning: { warning_type?: string; signal?: string }): boolean {
+    const wt = String(warning.warning_type ?? '').toLowerCase();
+    const sig = String(warning.signal ?? '').toLowerCase();
+    return T8_TYPE_RE.test(wt) || T8_SIGNAL_RE.test(sig);
+}
+
+const STATE_PRIORITY: StateName[] = ['Purple', 'Red', 'Yellow', 'Low', 'Safe'];
+
+/**
+ * Client-side risk scoring calculator — must match
+ * backend/services/climate/scoring_v2.py exactly.
+ *
+ * Single source of truth: the backend. The frontend recomputes locally
+ * for the static-mode bundle; the values it produces must equal what
+ * the backend would return for the same inputs (the cross-test in
+ * test_score_divergence.py enforces this).
+ */
+export function computeRiskScoreV2(
+    wbt: number,
+    consecutive: number,
+    activeWarnings: ReadonlyArray<{ warning_type?: string; signal?: string }>,
+    config: RiskConfig,
+): {
+    value: number;
+    state: StateName;
+    w: number;
+    h: number;
+    v: number;
+    m: number;
+    t8_applied: boolean;
+    breakdown: string;
+} {
     // Step 1: W from wet-bulb temperature
     let w = 0;
-    const wbtThresholds = config.wbt_thresholds || [];
-    // Walk in declared order; take the FIRST band that contains wbt. Bands
-    // should be contiguous (e.g. 0-21.9, 22-23.9, 24-26.9, 27-29.9, …) and
-    // touching; if there's a gap (e.g. 26.9 → 27 leaves 0.1 °C uncovered),
-    // the wbt in the gap falls through to w=0 rather than skipping to the
-    // next band. This used to produce wildly different scores depending on
-    // minute-by-minute WBT changes near the boundary.
-    for (const band of wbtThresholds) {
+    for (const band of config.wbt_thresholds) {
         let inBand = true;
         if (band.min_temp !== undefined && wbt < band.min_temp) inBand = false;
         if (band.max_temp !== undefined && wbt > band.max_temp) inBand = false;
@@ -50,8 +118,7 @@ function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: an
 
     // Step 2: H from consecutive hot nights
     let h = 0;
-    const hneThresholds = config.hne_thresholds || [];
-    for (const band of hneThresholds) {
+    for (const band of config.hne_thresholds) {
         let inBand = true;
         if (band.min_nights !== undefined && consecutive < band.min_nights) inBand = false;
         if (band.max_nights !== undefined && consecutive > band.max_nights) inBand = false;
@@ -60,58 +127,60 @@ function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: an
             break;
         }
     }
-    
-    // Step 3: V - vulnerability
-    const vuln = config.vulnerability_config || { trigger_h_score: 1, bonus: 5 };
-    const v = h >= vuln.trigger_h_score ? vuln.bonus : 0;
-    
-    // Step 4: M - warning multipliers
-    const multipliers = config.warning_multipliers || {};
-    let m = multipliers.none || 1.0;
-    if (activeWarnings && activeWarnings.length > 0) {
-        const warningSignals = activeWarnings.map(w => ({
-            type: String(w.warning_type || "").toLowerCase(),
-            signal: String(w.signal || "").toLowerCase()
-        }));
-        const priority = [
-            { key: "t8", check: (wt: string, sig: string) => wt.includes("signal no. 8") || wt.includes("gale or storm") || sig.includes("t8") },
-            { key: "black_rain", check: (wt: string, sig: string) => wt.includes("black rainstorm") || sig.includes("black") },
-            { key: "t3", check: (wt: string, sig: string) => wt.includes("signal no. 3") || wt.includes("strong wind") || sig.includes("t3") },
-            { key: "t1_or_red_rain", check: (wt: string, sig: string) => wt.includes("standby signal no. 1") || wt.includes("signal no. 1") || wt.includes("red rainstorm") || sig.includes("red") },
-            { key: "thunderstorm_or_amber_rain", check: (wt: string, sig: string) => wt.includes("thunderstorm") || wt.includes("amber rainstorm") || sig.includes("amber") }
+
+    // Step 3: V — vulnerability bonus triggered by H
+    const v = h >= config.vulnerability_config.trigger_h_score
+        ? config.vulnerability_config.bonus
+        : 0;
+
+    // Step 4: M — highest-priority warning multiplier
+    let m = config.warning_multipliers.none ?? 1.0;
+    if (activeWarnings.length > 0) {
+        const priority: (keyof RiskConfig['warning_multipliers'])[] = [
+            't8',
+            'black_rain',
+            't3',
+            't1_or_red_rain',
+            'thunderstorm_or_amber_rain',
         ];
-        let found = false;
-        for (const p of priority) {
-            for (const ws of warningSignals) {
-                if (p.check(ws.type, ws.signal)) {
-                    m = multipliers[p.key] || m;
-                    found = true;
+        for (const w of activeWarnings) {
+            const wt = String(w.warning_type ?? '').toLowerCase();
+            for (const key of priority) {
+                if (key === 't8' && isT8(w)) {
+                    m = config.warning_multipliers.t8 ?? m;
+                    break;
+                }
+                if (key === 'black_rain' && wt.includes('black rainstorm')) {
+                    m = config.warning_multipliers.black_rain ?? m;
+                    break;
+                }
+                if (key === 't3' && (wt.includes('signal no. 3') || wt.includes('strong wind'))) {
+                    m = config.warning_multipliers.t3 ?? m;
+                    break;
+                }
+                if (key === 't1_or_red_rain' && (wt.includes('standby signal no. 1') || wt.includes('signal no. 1') || wt.includes('red rainstorm'))) {
+                    m = config.warning_multipliers.t1_or_red_rain ?? m;
+                    break;
+                }
+                if (key === 'thunderstorm_or_amber_rain' && (wt.includes('thunderstorm') || wt.includes('amber rainstorm'))) {
+                    m = config.warning_multipliers.thunderstorm_or_amber_rain ?? m;
                     break;
                 }
             }
-            if (found) break;
+            if (m > 1.0) break;
         }
     }
 
     // Step 5: Base
     const base = w + h + v;
-    // 2x Risk Score Amplification
-    let rawScore = (base * m) * 2.0;
+    let rawScore = base * m;
 
     // Step 6: T8 floor rule
     let t8Applied = false;
-    const t8 = config.t8_floor || { enabled: true, min_score: 27 };
-    if (t8.enabled && activeWarnings) {
-        for (const wItem of activeWarnings) {
-            const wt = String(wItem.warning_type || "").toLowerCase();
-            const sig = String(wItem.signal || "").toLowerCase();
-            if (wt.includes("signal no. 8") || wt.includes("gale or storm") || sig.includes("t8")) {
-                if (rawScore < t8.min_score) {
-                    rawScore = t8.min_score;
-                    t8Applied = true;
-                }
-                break;
-            }
+    if (config.t8_floor.enabled && activeWarnings.some(isT8)) {
+        if (rawScore < config.t8_floor.min_score) {
+            rawScore = config.t8_floor.min_score;
+            t8Applied = true;
         }
     }
 
@@ -119,505 +188,349 @@ function computeRiskScoreV2(wbt: number, consecutive: number, activeWarnings: an
     const riskScore = Math.min(30.0, rawScore);
 
     // Step 8: Map to state
-    let state = "Safe";
-    const scoreRound = Math.round(riskScore);
-    const stateRanges = config.state_ranges || [];
-    const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
-    let foundState = false;
-    for (const pName of priorityOrder) {
-        for (const s of stateRanges) {
-            if (s.name === pName && scoreRound >= s.min && scoreRound <= s.max) {
+    let state: StateName = 'Safe';
+    const rounded = Math.round(riskScore);
+    outer: for (const pName of STATE_PRIORITY) {
+        for (const s of config.state_ranges) {
+            if (s.name === pName && rounded >= s.min && rounded <= s.max) {
                 state = s.name;
-                foundState = true;
-                break;
+                break outer;
             }
         }
-        if (foundState) break;
     }
 
     return {
         value: Number(riskScore.toFixed(1)),
         state,
-        w, h, v, m,
+        w,
+        h,
+        v,
+        m,
         t8_applied: t8Applied,
-        breakdown: `(${w} + ${h} + ${v}) × ${m} × 2.0 = ${(base * m * 2.0).toFixed(1)}` + (t8Applied ? " → T8 floor applied" : "")
+        breakdown: `(${w} + ${h} + ${v}) × ${m} = ${(base * m).toFixed(1)}` + (t8Applied ? ' → T8 floor applied' : ''),
     };
 }
 
-async function getActiveRiskConfig(): Promise<any> {
-    const saved = localStorage.getItem("climateshield_risk_config");
-    if (saved) {
-        try {
-            return JSON.parse(saved);
-        } catch (e) {
-            console.error("Failed to parse saved config", e);
-        }
-    }
-    const stateRes = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
-    if (stateRes && stateRes.ok) {
-        try {
-            const stateData = await stateRes.json();
-            return {
-                wbt_thresholds: stateData.wbt_thresholds,
-                hne_thresholds: stateData.hne_thresholds,
-                vulnerability_config: stateData.vulnerability_config,
-                warning_multipliers: stateData.warning_multipliers,
-                t8_floor: stateData.t8_floor,
-                state_ranges: stateData.state_ranges
-            };
-        } catch (e) {
-            console.error("Failed to parse state.json config", e);
-        }
-    }
-    // Hardcoded fallback with strict non-overlapping bands
-    return {
-        wbt_thresholds: [
-            { max_temp: 21.9, score: 0 },
-            { min_temp: 22, max_temp: 23.9, score: 1 },
-            { min_temp: 24, max_temp: 26.9, score: 2 },
-            { min_temp: 27, max_temp: 29.9, score: 4 },
-            { min_temp: 30, score: 6 },
-        ],
-        hne_thresholds: [
-            { max_nights: 0, score: 0 },
-            { min_nights: 1, max_nights: 1, score: 1 },
-            { min_nights: 2, max_nights: 2, score: 2 },
-            { min_nights: 3, max_nights: 4, score: 4 },
-            { min_nights: 5, score: 6 },
-        ],
-        vulnerability_config: { trigger_h_score: 1, bonus: 5 },
-        warning_multipliers: {
-            none: 1.0,
-            thunderstorm_or_amber_rain: 2.0,
-            t1_or_red_rain: 1.5,
-            t3: 1.5,
-            black_rain: 2.0,
-            t8: 3.0,
-        },
-        t8_floor: { enabled: true, min_score: 27 },
-        state_ranges: [
-            { name: 'Safe', min: 0, max: 12 },
-            { name: 'Low', min: 13, max: 16 },
-            { name: 'Yellow', min: 17, max: 22 },
-            { name: 'Red', min: 23, max: 24 },
-            { name: 'Purple', min: 25, max: 30 },
-        ]
-    };
-}
+// --------------------------------------------------------------------------- //
+// Config fetching (live + static)                                            //
+// --------------------------------------------------------------------------- //
 
-// Increment localStorage counters for frontend calculations
-function incrementMetric(key: string) {
-    try {
-        const currentStr = localStorage.getItem("climateshield_metrics");
-        const current = currentStr ? JSON.parse(currentStr) : {
-            hko_fetches: 0,
-            weather_readings: 0,
-            wbt_calculations: 0,
-            risk_scores: 0,
-            alerts_generated: 0,
-            forecast_days: 0,
-            warnings: 0,
-            hne_checks: 0
+let _configCache: RiskConfig | null = null;
+
+export async function getActiveRiskConfig(): Promise<RiskConfig> {
+    if (_configCache) return _configCache;
+    if (STATIC_MODE) {
+        const res = await fetch(withDailyCacheBust(`${STATIC_BASE}state.json`));
+        if (!res.ok) throw new Error(`Failed to fetch static state.json: ${res.status}`);
+        const data = await res.json();
+        _configCache = {
+            wbt_thresholds: data.wbt_thresholds,
+            hne_thresholds: data.hne_thresholds,
+            vulnerability_config: data.vulnerability_config,
+            warning_multipliers: data.warning_multipliers,
+            t8_floor: data.t8_floor,
+            state_ranges: data.state_ranges,
         };
-        current[key] = (current[key] || 0) + 1;
-        localStorage.setItem("climateshield_metrics", JSON.stringify(current));
-    } catch (e) {
-        console.warn("Failed to increment metric:", e);
+        return _configCache;
     }
+    _configCache = await apiFetch<RiskConfig>('/api/weather/risk-config');
+    return _configCache;
 }
+
+export function invalidateRiskConfigCache() {
+    _configCache = null;
+}
+
+// --------------------------------------------------------------------------- //
+// Public API surface                                                          //
+// --------------------------------------------------------------------------- //
 
 export const api = {
-    donate: {
-        createPledge: async (data: any) => {
-            try {
-                const currentStr = localStorage.getItem("climateshield_donations");
-                const current = currentStr ? JSON.parse(currentStr) : [];
-                current.push({ ...data, id: Date.now() });
-                localStorage.setItem("climateshield_donations", JSON.stringify(current));
-            } catch (e) {
-                console.warn(e);
-            }
-            return { success: true };
-        },
-    },
+    isStatic: STATIC_MODE,
+    apiBase: API_BASE,
+
+    /**
+     * Admin operations. The ``password`` argument is sent to the backend
+     * which validates it via ``_check_admin_password``. The client does
+     * NOT compare it locally — that check used to be a hard-coded
+     * string and was a serious security hole (deferred for future work).
+     */
     admin: {
-        getDonations: async () => {
-            try {
-                const donationsStr = localStorage.getItem("climateshield_donations");
-                if (donationsStr) return JSON.parse(donationsStr);
-            } catch {}
-            return [];
-        },
-        getRiskConfig: async (password: string) => {
-            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
-            try {
-                const configStr = localStorage.getItem("climateshield_risk_config");
-                if (configStr) return JSON.parse(configStr);
-            } catch {}
-            // Fallback to fetch state.json
-            const response = await fetch(`${DATA_BASE}state.json`);
-            if (!response.ok) throw new Error("Failed to fetch risk config");
-            const stateData = await response.json();
-            return {
-                wbt_thresholds: stateData.wbt_thresholds,
-                hne_thresholds: stateData.hne_thresholds,
-                vulnerability_config: stateData.vulnerability_config,
-                warning_multipliers: stateData.warning_multipliers,
-                t8_floor: stateData.t8_floor,
-                state_ranges: stateData.state_ranges
-            };
-        },
-        updateRiskConfig: async (password: string, config: any) => {
-            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
-            localStorage.setItem("climateshield_risk_config", JSON.stringify(config));
-            return { success: true, message: "Risk formula configuration updated" };
-        },
-        resetRiskConfig: async (password: string) => {
-            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
-            localStorage.removeItem("climateshield_risk_config");
-            return { success: true, message: "Risk formula configuration reset to default" };
-        },
-        testRiskConfig: async (password: string, config: any) => {
-            if (password !== "Climate012220ShielD") throw new Error("Forbidden");
-            
-            // Run scenarios client-side
-            const scenarios = [
-                { wbt: 28.0, consecutive: 1, warnings: [], label: "Moderate heat, no warning" },
-                { wbt: 31.0, consecutive: 5, warnings: [{ warning_type: "Strong Wind Signal No. 3", signal: "T3" }], label: "Extreme heat + T3" },
-                { wbt: 29.0, consecutive: 2, warnings: [{ warning_type: "Gale or Storm Signal No. 8", signal: "T8" }], label: "T8 floor rule" },
-            ];
-            
-            const results = scenarios.map(s => {
-                const result = computeRiskScoreV2(s.wbt, s.consecutive, s.warnings, config);
-                return {
-                    label: s.label,
-                    inputs: { wbt: s.wbt, consecutive: s.consecutive, warnings: s.warnings },
-                    score: result.value,
-                    state: result.state,
-                    breakdown: result.breakdown,
-                };
+        async getRiskConfig(password: string): Promise<RiskConfig> {
+            return apiFetch<RiskConfig>('/api/admin/risk-config', {
+                headers: { 'X-Admin-Password': password },
             });
-            return { valid: true, scenarios: results };
+        },
+        async updateRiskConfig(password: string, config: RiskConfig): Promise<{ success: boolean; message: string }> {
+            return apiFetch('/api/admin/risk-config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+                body: JSON.stringify({ password, config }),
+            });
+        },
+        async resetRiskConfig(password: string): Promise<{ success: boolean; message: string }> {
+            return apiFetch('/api/admin/risk-config/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password }),
+            });
+        },
+        async testRiskConfig(password: string, config: RiskConfig): Promise<{ valid: boolean; scenarios: unknown[] }> {
+            return apiFetch('/api/admin/risk-config/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password, config }),
+            });
         },
     },
-    weather: {
-        getCurrent: async () => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));
-            if (!response.ok) throw new Error("Failed to fetch current weather");
-            return response.json();
-        },
-        getForecast: async () => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}forecast.json`));
-            if (!response.ok) throw new Error("Failed to fetch forecast");
-            const forecastDays = normalizeForecastDates(await response.json());
 
-            const config = await getActiveRiskConfig();
-
-            const stateRes = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
-            const stateData = stateRes && stateRes.ok ? await stateRes.json() : {};
-            let projStreak = stateData.consecutive_hot_nights || 0;
-
-            // Pull current snapshot and active warnings so day-0 of the outlook
-            // uses the same data as the Risk Assessment box (avoids the
-            // "instantaneous vs predicted-peak" mismatch that made day-0 read
-            // 30/30 while the gauge read 18/30 for the same morning).
-            const [currentSnapshot, warningsSnapshot] = await Promise.all([
-                fetch(withDailyCacheBust(`${DATA_BASE}current.json`))
-                    .then(r => r.ok ? r.json() : [])
-                    .catch(() => [] as any[]),
-                fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`))
-                    .then(r => r.ok ? r.json() : [])
-                    .catch(() => [] as any[]),
-            ]);
-            const currentWbtValues = (currentSnapshot || [])
-                .map((r: any) => r.wet_bulb_temp_c)
-                .filter((v: any) => typeof v === 'number');
-            const currentScoreValues = (currentSnapshot || [])
-                .map((r: any) => r.composite_risk_score)
-                .filter((v: any) => typeof v === 'number');
-            const median = (xs: number[]) => {
-                if (xs.length === 0) return null;
-                const sorted = [...xs].sort((a, b) => a - b);
-                const mid = Math.floor(sorted.length / 2);
-                return sorted.length % 2 === 0
-                    ? (sorted[mid - 1] + sorted[mid]) / 2
-                    : sorted[mid];
-            };
-            const todayWbt = median(currentWbtValues);
-            const todayScore = median(currentScoreValues);
-
-            const todayKey = getLocalDateKey(); // YYYYMMDD in local time
-            const activeWarnings = Array.isArray(warningsSnapshot) ? warningsSnapshot : [];
-
-            return forecastDays.map((f: any) => {
-                const isToday = f.forecast_date === todayKey;
-                let wbtVal: number;
-                if (isToday && todayWbt != null) {
-                    // Day 0 should mirror what the Risk Assessment box shows
-                    // (instantaneous city-median), not the predicted daily peak.
-                    wbtVal = todayWbt;
-                } else {
-                    wbtVal = f.wet_bulb_peak !== undefined
-                        ? f.wet_bulb_peak
-                        : calculateWbt(f.max_temp || 25, f.max_rh || f.min_rh || 70);
+    donate: {
+        async createPledge(data: DonationPledge): Promise<DonationPledgeResponse | { success: true }> {
+            if (STATIC_MODE) {
+                // Static-mode fallback: persist locally so admins can still see it
+                try {
+                    const current = JSON.parse(localStorage.getItem('climateshield_donations') ?? '[]');
+                    current.push({ ...data, id: Date.now() });
+                    localStorage.setItem('climateshield_donations', JSON.stringify(current));
+                } catch (e) {
+                    console.warn('Failed to persist pledge to localStorage', e);
                 }
-                if (f.min_temp !== undefined && f.min_temp >= 28.0) {
-                    projStreak += 1;
-                } else {
-                    projStreak = 0;
-                }
-                let scoreValue: number;
-                let stateName: string;
-                if (isToday && todayScore != null) {
-                    // Reuse the persisted current.json score so the Outlook's
-                    // day-0 cell is byte-identical to the Risk Assessment
-                    // median; fall back to recompute if missing.
-                    scoreValue = todayScore;
-                    const ranges = config.state_ranges || [];
-                    const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
-                    stateName = "Safe";
-                    const rounded = Math.round(scoreValue);
-                    for (const pName of priorityOrder) {
-                        const r = ranges.find((x: any) => x.name === pName);
-                        if (r && rounded >= r.min && rounded <= r.max) {
-                            stateName = pName;
-                            break;
-                        }
-                    }
-                } else {
-                    const result = computeRiskScoreV2(wbtVal, projStreak, activeWarnings, config);
-                    scoreValue = result.value;
-                    stateName = result.state;
-                }
-                return {
-                    ...f,
-                    wet_bulb_peak: wbtVal,
-                    composite_risk_score: scoreValue,
-                    risk_level: stateName,
-                };
+                return { success: true };
+            }
+            return apiFetch<DonationPledgeResponse>('/api/donor/pledge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
             });
         },
-        getRisks: async () => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));
-            if (!response.ok) throw new Error("Failed to fetch risk outlook");
-            return response.json();
-        },
-        getWarnings: async () => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`));
-            if (!response.ok) throw new Error("Failed to fetch warnings");
-            return response.json();
-        },
-        getHistory: async () => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}history.json`));
-            if (!response.ok) throw new Error("Failed to fetch weather history");
-            return response.json();
-        },
-        getHistoricalReadings: async (_station: string, _hours: number = 12) => {
-            // Deprecated: WBT Risk Timeline now reads the latest reading from current.json
-            // (same source as Risk Assessment) via `currentReading` prop. HKO's rhrread
-            // endpoint only provides instantaneous observations, so a 12-hour archive
-            // cannot be produced from open data without an hourly historical store.
-            // This stub is kept to avoid breaking any out-of-tree consumer.
-            return { readings: [] as any[], message: "Historical readings not available in static mode" };
-        },
-        getLiveScore: async (station: string) => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}current.json`));
-            if (!response.ok) throw new Error("Failed to fetch live risk score");
-            const all = await response.json();
-            const found = (all || []).find((r: any) => r.station === station);
-            
-            const config = await getActiveRiskConfig();
+    },
 
-            const warningsRes = await fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`)).catch(() => null);
-            const warnings = warningsRes && warningsRes.ok ? await warningsRes.json() : [];
-            
-            const stateRes2 = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`)).catch(() => null);
-            const stateData2 = stateRes2 && stateRes2.ok ? await stateRes2.json() : {};
-            const consecutive = stateData2.consecutive_hot_nights || 0;
-
-            const wbt = found?.wet_bulb_temp_c ?? calculateWbt(found?.temp_c ?? 25, found?.humidity_pct ?? 80);
-            const result = computeRiskScoreV2(wbt, consecutive, warnings, config);
-            
-            incrementMetric("wbt_calculations");
-            incrementMetric("risk_scores");
-
-            return {
-                station,
-                value: result.value,
-                state: result.state,
-                w: result.w,
-                h: result.h,
-                v: result.v,
-                m: result.m,
-                breakdown: result.breakdown,
-                theoretical_max: 30,
-                warnings_active: warnings.map((w: any) => w.warning_type),
-                hot_nights_consecutive: consecutive,
-                wet_bulb_temp_c: wbt
-            };
-        },
-        getTrends: async () => {
-            const config = await getActiveRiskConfig();
-            
-            // 1. Fetch backward history trends from trends.json (if ok) or history.json
-            let backward: any[] = [];
-            try {
-                const response = await fetch(withDailyCacheBust(`${DATA_BASE}trends.json`));
-                if (response.ok) {
-                    const trendsData = await response.json();
-                    backward = (trendsData.backward || []).map((t: any) => {
-                        const result = computeRiskScoreV2(t.wbt || 25.0, Math.round(t.hne || 0), [], config);
-                        return {
-                            ...t,
-                            composite_risk_score: result.value,
-                            risk_level: result.state
-                        };
-                    });
-                } else {
-                    const historyRes = await fetch(withDailyCacheBust(`${DATA_BASE}history.json`)).then(r => r.json());
-                    backward = (historyRes.history || []).map((h: any, idx: number) => {
-                        const d = new Date();
-                        d.setDate(d.getDate() - idx);
-                        const dateStr = d.toISOString().split('T')[0].replace(/-/g, '');
-                        const wbt = 24.5 - (idx % 2);
-                        const hne = h.hne || 0;
-                        const result = computeRiskScoreV2(wbt, Math.round(hne), [], config);
-                        return {
-                            date: dateStr,
-                            composite_risk_score: result.value,
-                            risk_level: result.state,
-                            wbt,
-                            hne,
-                            type: 'history'
-                        };
-                    }).reverse();
-                }
-            } catch (e) {
-                console.error("Failed to load backward trends", e);
+    weather: {
+        async getCurrent(): Promise<WeatherReading[]> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}current.json`));
+                if (!res.ok) throw new Error('Failed to fetch current weather');
+                return (await res.json()) as WeatherReading[];
             }
-            
-            // 2. Load forward forecast trends using weather.getForecast() (recalculated dynamically!)
-            let forward: any[] = [];
-            try {
-                const forecastDays = await api.weather.getForecast();
-                forward = forecastDays.slice(0, 9).map((f: any) => {
-                    const maxTemp = f.max_temp !== undefined ? f.max_temp : 30;
-                    const hne = maxTemp >= 28 ? Number(((maxTemp - 25) * 2).toFixed(1)) : 0;
-                    return {
-                        date: f.forecast_date,
-                        type: 'forecast',
-                        composite_risk_score: f.composite_risk_score,
-                        risk_level: f.risk_level,
-                        wbt: f.wet_bulb_peak,
-                        hne: hne
-                    };
+            return apiFetch<WeatherReading[]>('/api/weather/current');
+        },
+
+        async getForecast(): Promise<WeatherForecastDay[]> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}forecast.json`));
+                if (!res.ok) throw new Error('Failed to fetch forecast');
+                const days = normalizeForecastDates(await res.json()) as WeatherForecastDay[];
+                const config = await getActiveRiskConfig();
+                const [currentSnap, warningsSnap] = await Promise.all([
+                    fetch(withDailyCacheBust(`${STATIC_BASE}current.json`))
+                        .then((r) => (r.ok ? r.json() : []))
+                        .catch(() => [] as WeatherReading[]),
+                    fetch(withDailyCacheBust(`${STATIC_BASE}warnings.json`))
+                        .then((r) => (r.ok ? r.json() : []))
+                        .catch(() => [] as WeatherWarning[]),
+                ]);
+                const wbtValues = (currentSnap ?? [])
+                    .map((r: WeatherReading): number | null => r.wet_bulb_temp_c)
+                    .filter((v: number | null): v is number => typeof v === 'number');
+                const scoreValues = (currentSnap ?? [])
+                    .map((r: WeatherReading): number | null => r.composite_risk_score)
+                    .filter((v: number | null): v is number => typeof v === 'number');
+                const median = (xs: number[]): number | null => {
+                    if (xs.length === 0) return null;
+                    const sorted = [...xs].sort((a, b) => a - b);
+                    const mid = Math.floor(sorted.length / 2);
+                    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+                };
+                const todayWbt = median(wbtValues);
+                const todayScore = median(scoreValues);
+                const todayKey = getLocalDateKey();
+                const activeWarnings = (Array.isArray(warningsSnap) ? warningsSnap : []).map(
+                    (w): { warning_type?: string; signal?: string } => ({
+                        warning_type: w.warning_type,
+                        signal: w.signal ?? undefined,
+                    }),
+                );
+                let projStreak = 0;
+
+                return days.map((f) => {
+                    const isToday = f.forecast_date === todayKey;
+                    let wbtVal: number;
+                    if (isToday && todayWbt != null) {
+                        wbtVal = todayWbt;
+                    } else {
+                        wbtVal = f.wet_bulb_peak ?? calculateWbt(f.max_temp ?? 25, f.max_rh ?? f.min_rh ?? 70);
+                    }
+                    if (f.min_temp != null && f.min_temp >= 28.0) projStreak += 1;
+                    else projStreak = 0;
+
+                    let scoreValue: number;
+                    let stateName: StateName;
+                    if (isToday && todayScore != null) {
+                        scoreValue = todayScore;
+                        stateName = 'Safe';
+                        const rounded = Math.round(scoreValue);
+                        for (const pName of STATE_PRIORITY) {
+                            const r = config.state_ranges.find((s) => s.name === pName);
+                            if (r && rounded >= r.min && rounded <= r.max) {
+                                stateName = r.name;
+                                break;
+                            }
+                        }
+                    } else {
+                        const result = computeRiskScoreV2(wbtVal, projStreak, activeWarnings, config);
+                        scoreValue = result.value;
+                        stateName = result.state;
+                    }
+                    return { ...f, wet_bulb_peak: wbtVal, composite_risk_score: scoreValue, risk_level: stateName };
                 });
-            } catch (e) {
-                console.error("Failed to load forward trends", e);
             }
-            
-            return { backward, forward };
+            return apiFetch<WeatherForecastDay[]>('/api/weather/forecast');
         },
-        getRiskConfig: async () => {
+
+        async getRisks(): Promise<{ risk_7_day: unknown; risk_9_day: unknown; hne: number | null }> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}current.json`));
+                if (!res.ok) throw new Error('Failed to fetch risk outlook');
+                return res.json();
+            }
+            return apiFetch('/api/weather/risks');
+        },
+
+        async getWarnings(): Promise<WeatherWarning[]> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}warnings.json`));
+                if (!res.ok) throw new Error('Failed to fetch warnings');
+                return res.json();
+            }
+            return apiFetch<WeatherWarning[]>('/api/weather/warnings');
+        },
+
+        async getHistory(): Promise<{ history: Array<{ date: string; station: string; hne?: number; nightly_hne?: number; risk_level?: string; peak_temp?: number; peak_wbt?: number; peak_rh?: number; avg_rh?: number; composite_risk_score?: { value: number; state: string } | null }> }> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}history.json`));
+                if (!res.ok) throw new Error('Failed to fetch weather history');
+                return res.json();
+            }
+            return apiFetch('/api/weather/history?days=7');
+        },
+
+        async getHistoricalReadings(station: string, hours: number = 12): Promise<{ readings: Array<{ wet_bulb_temp_c: number; recorded_at: string }>; count: number }> {
+            // Server-only: real historical aggregation lives on the backend.
+            return apiFetch(`/api/weather/history/readings?station=${encodeURIComponent(station)}&hours=${hours}`);
+        },
+
+        async getLiveScore(station: string): Promise<LiveRiskScore> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}current.json`));
+                if (!res.ok) throw new Error('Failed to fetch live risk score');
+                const all: WeatherReading[] = await res.json();
+                const found = all.find((r) => r.station === station);
+                const config = await getActiveRiskConfig();
+                const warningsRes = await fetch(withDailyCacheBust(`${STATIC_BASE}warnings.json`)).catch(() => null);
+                const warningsRaw: WeatherWarning[] = warningsRes && warningsRes.ok ? await warningsRes.json() : [];
+                const warnings = warningsRaw.map(
+                    (w): { warning_type?: string; signal?: string } => ({
+                        warning_type: w.warning_type,
+                        signal: w.signal ?? undefined,
+                    }),
+                );
+                const stateRes = await fetch(withDailyCacheBust(`${STATIC_BASE}state.json`)).catch(() => null);
+                const stateData = stateRes && stateRes.ok ? await stateRes.json() : {};
+                const consecutive = stateData.consecutive_hot_nights ?? 0;
+                const wbt = found?.wet_bulb_temp_c ?? calculateWbt(found?.temp_c ?? 25, found?.humidity_pct ?? 80);
+                const result = computeRiskScoreV2(wbt, consecutive, warnings, config);
+                return {
+                    station,
+                    value: result.value,
+                    state: result.state,
+                    w: result.w,
+                    h: result.h,
+                    v: result.v,
+                    m: result.m,
+                    t8_applied: result.t8_applied,
+                    breakdown: result.breakdown,
+                    theoretical_max: 30,
+                    warnings_active: warnings.map((w: { warning_type?: string }) => w.warning_type ?? ''),
+                    hot_nights_consecutive: consecutive,
+                    wet_bulb_temp_c: wbt,
+                    recorded_at: found?.recorded_at ?? new Date().toISOString(),
+                };
+            }
+            return apiFetch<LiveRiskScore>(
+                `/api/weather/live-score?station=${encodeURIComponent(station)}`,
+                { method: 'POST' },
+            );
+        },
+
+        async getTrends(): Promise<{ backward: unknown[]; forward: unknown[] }> {
+            if (STATIC_MODE) {
+                // Minimal static-mode shape so the chart can still render.
+                return { backward: [], forward: [] };
+            }
+            return apiFetch('/api/weather/trends');
+        },
+
+        async getRiskConfig(): Promise<RiskConfig> {
             return getActiveRiskConfig();
         },
-        getUnreadAlerts: async () => {
-            const response = await fetch(withDailyCacheBust(`${DATA_BASE}warnings.json`));
-            if (!response.ok) return [];
-            const all = await response.json();
-            return (all || []).map((w: any, i: number) => ({ ...w, id: i, acknowledged: false }));
-        },
-        ackAlert: async (_id: number) => {
-            return { success: true };
-        },
-        getMetrics: async () => {
-            let base = {
-                hko_fetches: 0,
-                weather_readings: 0,
-                wbt_calculations: 0,
-                risk_scores: 0,
-                alerts_generated: 0,
-                forecast_days: 0,
-                warnings: 0,
-                hne_checks: 0
-            };
-            try {
-                const response = await fetch(withDailyCacheBust(`${DATA_BASE}state.json`));
-                if (response.ok) {
-                    const stateData = await response.json();
-                    base = {
-                        hko_fetches: stateData.hko_fetches || 0,
-                        weather_readings: stateData.weather_readings || 0,
-                        wbt_calculations: stateData.wbt_calculations || 0,
-                        risk_scores: stateData.risk_scores || 0,
-                        alerts_generated: stateData.alerts_generated || 0,
-                        forecast_days: stateData.forecast_days || 0,
-                        warnings: stateData.warnings || 0,
-                        hne_checks: stateData.hne_checks || 0
-                    };
-                }
-            } catch (e) {}
 
-            let offsets = {
-                hko_fetches: 0,
-                weather_readings: 0,
-                wbt_calculations: 0,
-                risk_scores: 0,
-                alerts_generated: 0,
-                forecast_days: 0,
-                warnings: 0,
-                hne_checks: 0
-            };
-            try {
-                const offsetsStr = localStorage.getItem("climateshield_metrics_offsets");
-                if (offsetsStr) {
-                    offsets = JSON.parse(offsetsStr);
-                }
-            } catch (e) {}
-
-            let localAdditions = {
-                hko_fetches: 0,
-                weather_readings: 0,
-                wbt_calculations: 0,
-                risk_scores: 0,
-                alerts_generated: 0,
-                forecast_days: 0,
-                warnings: 0,
-                hne_checks: 0
-            };
-            try {
-                const localStr = localStorage.getItem("climateshield_metrics");
-                if (localStr) {
-                    localAdditions = JSON.parse(localStr);
-                }
-            } catch (e) {}
-
-            const displayed = {
-                hko_fetches: Math.max(0, base.hko_fetches - offsets.hko_fetches) + localAdditions.hko_fetches,
-                weather_readings: Math.max(0, base.weather_readings - offsets.weather_readings) + localAdditions.weather_readings,
-                wbt_calculations: Math.max(0, base.wbt_calculations - offsets.wbt_calculations) + localAdditions.wbt_calculations,
-                risk_scores: Math.max(0, base.risk_scores - offsets.risk_scores) + localAdditions.risk_scores,
-                alerts_generated: Math.max(0, base.alerts_generated - offsets.alerts_generated) + localAdditions.alerts_generated,
-                forecast_days: Math.max(0, base.forecast_days - offsets.forecast_days) + localAdditions.forecast_days,
-                warnings: Math.max(0, base.warnings - offsets.warnings) + localAdditions.warnings,
-                hne_checks: Math.max(0, base.hne_checks - offsets.hne_checks) + localAdditions.hne_checks,
-            };
-
-            return displayed;
-        },
-        getLastReset: async () => {
-            try {
-                const resetAt = localStorage.getItem("climateshield_metrics_reset");
-                return { last_reset_at: resetAt };
-            } catch {
-                return { last_reset_at: null };
+        async getUnreadAlerts(): Promise<SystemAlert[]> {
+            if (STATIC_MODE) {
+                const res = await fetch(withDailyCacheBust(`${STATIC_BASE}warnings.json`));
+                if (!res.ok) return [];
+                const all: WeatherWarning[] = await res.json();
+                return all.map((w, i) => ({ ...w, id: i, status: 'pending', acknowledged_at: null } as unknown as SystemAlert));
             }
-        }
-    },
-    agents: {
-        getStatus: async () => {
-            return { status: "offline", message: "Agents not available in static mode" };
+            return apiFetch<SystemAlert[]>('/api/weather/alerts/unread');
         },
-        getStreamUrl: () => "",
-    }
+
+        async ackAlert(_id: number): Promise<{ success: true }> {
+            if (STATIC_MODE) return { success: true };
+            return apiFetch<{ success: true }>(`/api/weather/alerts/${_id}/ack`, { method: 'POST' });
+        },
+
+        async getMetrics(): Promise<Record<string, number>> {
+            if (STATIC_MODE) {
+                // Combine persisted state.json counters with session-local increments.
+                let base: Record<string, number> = {
+                    hko_fetches: 0,
+                    weather_readings: 0,
+                    wbt_calculations: 0,
+                    risk_scores: 0,
+                    alerts_generated: 0,
+                    forecast_days: 0,
+                    warnings: 0,
+                    hne_checks: 0,
+                };
+                try {
+                    const res = await fetch(withDailyCacheBust(`${STATIC_BASE}state.json`));
+                    if (res.ok) {
+                        const data = await res.json();
+                        base = { ...base, ...data };
+                    }
+                } catch { /* ignore */ }
+                try {
+                    const local = JSON.parse(localStorage.getItem('climateshield_metrics') ?? '{}');
+                    return { ...base, ...local };
+                } catch {
+                    return base;
+                }
+            }
+            return apiFetch<Record<string, number>>('/api/weather/metrics', { method: 'POST' });
+        },
+
+        async getLastReset(): Promise<{ last_reset_at: string | null }> {
+            if (STATIC_MODE) {
+                return { last_reset_at: localStorage.getItem('climateshield_metrics_reset') };
+            }
+            return apiFetch<{ last_reset_at: string | null }>('/api/weather/metrics/last-reset', { method: 'POST' });
+        },
+    },
+
+    agents: {
+        async getStatus(): Promise<{ status: string; message?: string }> {
+            return { status: 'offline', message: 'Agents not available in static mode' };
+        },
+        getStreamUrl: (): string => '',
+    },
 };
