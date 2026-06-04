@@ -1,14 +1,17 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from backend.limiter import limiter
 from backend.services.hko_client import hko
 from backend.services.open_meteo_client import open_meteo
 from backend.services.weather_orchestrator import weather_orchestrator
@@ -16,6 +19,18 @@ from backend.services.scheduler import start_scheduler, shutdown_scheduler
 from backend.database import Base, engine
 
 logger = logging.getLogger(__name__)
+
+
+def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """Return a structured 429 when a SlowAPI limit triggers."""
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": f"Rate limit exceeded: {exc.detail}",
+            "limit": str(exc.detail),
+        },
+        headers={"Retry-After": str(getattr(exc, "retry_after", 60))},
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,6 +71,13 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Wire SlowAPI rate limiter (per Context7/SlowAPI docs).
+# Decorators like @limiter.limit("3/minute") in routers are inert until
+# app.state.limiter is set and the RateLimitExceeded handler is registered.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Load CORS origins from env (comma-separated) for production flexibility
 _cors_env = os.getenv("CORS_ORIGINS", "")

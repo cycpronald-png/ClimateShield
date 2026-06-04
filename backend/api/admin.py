@@ -8,6 +8,7 @@ import secrets
 from datetime import datetime
 from fastapi.responses import StreamingResponse
 from backend import crud, schemas, database, auth
+from backend.limiter import limiter
 from backend.services.counters import get_all_counters
 from backend.services.audit_logger import audit_log
 from backend.models import (
@@ -129,12 +130,22 @@ def export_backup(request: Request, db: Session = Depends(database.get_db)):
 
 
 @router.post("/import")
+@limiter.limit("2/minute")
 def import_backup(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(database.get_db),
 ):
-    """Import weather data, alerts, and counters from a JSON backup file."""
+    """Import weather data, alerts, and counters from a JSON backup file.
+
+    By default this REPLACES all rows in the affected tables (delete-then-insert),
+    so the imported snapshot is the new state of the database. Pass
+    ``?mode=merge`` to keep existing rows and append/upsert instead.
+    """
+    mode = request.query_params.get("mode", "replace").lower()
+    if mode not in {"replace", "merge"}:
+        raise HTTPException(status_code=400, detail="mode must be 'replace' or 'merge'")
+
     if not file.filename.endswith(".json"):
         raise HTTPException(status_code=400, detail="File must be a JSON file")
 
@@ -170,6 +181,16 @@ def import_backup(
     }
 
     try:
+        # In replace mode, clear the destination tables before inserting.
+        # This makes a backup file a true disaster-recovery snapshot.
+        if mode == "replace":
+            db.query(GenerationCounter).delete()
+            db.query(SystemAlert).delete()
+            db.query(WeatherWarning).delete()
+            db.query(WeatherForecastDay).delete()
+            db.query(WeatherReading).delete()
+            db.flush()
+
         for item in data.get("weather_readings", []):
             reading = WeatherReading(
                 station=item.get("station"),
@@ -252,6 +273,7 @@ def import_backup(
 
 
 @router.get("/donations", response_model=List[schemas.DonationPledgeResponse])
+@limiter.limit("30/minute")
 def get_donations(
     request: Request,
     skip: int = 0,

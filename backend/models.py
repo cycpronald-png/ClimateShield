@@ -237,7 +237,7 @@ class RiskFormulaConfig(Base):
     state_ranges = Column(JSON, nullable=False)
 
     created_at = Column(DateTime(timezone=True), default=datetime.datetime.now)
-    updated_at = Column(DateTime(timezone=True), default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
 
 class ConsecutiveHotNights(Base):

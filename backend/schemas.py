@@ -10,6 +10,8 @@ from backend.models import DonationType, DonationStatus, DeliveryMethod
 # ========== DONATION SCHEMAS ==========
 
 class DonationItemBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     item_type: str
     quantity: int = Field(gt=0)
     delivery_method: str = DeliveryMethod.DROPOFF
@@ -17,7 +19,7 @@ class DonationItemBase(BaseModel):
 
 
 class DonationItemCreate(DonationItemBase):
-    pass
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DonationItemResponse(DonationItemBase):
@@ -28,6 +30,8 @@ class DonationItemResponse(DonationItemBase):
 
 
 class DonationPledgeCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     donor_name: str
     donor_email: EmailStr
     donor_phone: Optional[str] = None
@@ -38,6 +42,8 @@ class DonationPledgeCreate(BaseModel):
 
 
 class DonationPledgeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     status: str
     created_at: datetime
@@ -46,10 +52,10 @@ class DonationPledgeResponse(BaseModel):
     items: List[DonationItemResponse]
     next_steps: Optional[str] = None  # Instructions for the donor
 
-    model_config = ConfigDict(from_attributes=True)
-
 
 class DonationPledgeAdminView(DonationPledgeResponse):
+    model_config = ConfigDict(from_attributes=True)
+
     donor_email: str
     donor_phone: Optional[str]
     company: Optional[str]
@@ -61,6 +67,8 @@ class DonationPledgeAdminView(DonationPledgeResponse):
 # ========== WEATHER SCHEMAS ==========
 
 class WeatherReadingBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     station: str
     district: Optional[str] = None
     temp_c: Optional[float] = None
@@ -74,7 +82,7 @@ class WeatherReadingBase(BaseModel):
 
 
 class WeatherReadingCreate(WeatherReadingBase):
-    pass
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WeatherReadingResponse(WeatherReadingBase):
@@ -90,6 +98,8 @@ class WeatherReadingResponse(WeatherReadingBase):
 
 
 class WeatherForecastDayBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     forecast_date: str
     forecast_day_index: int
     min_temp: Optional[float] = None
@@ -114,6 +124,8 @@ class WeatherForecastDayResponse(WeatherForecastDayBase):
 
 
 class WeatherWarningBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     warning_type: str
     signal: Optional[str] = None
     description: Optional[str] = None
@@ -130,6 +142,8 @@ class WeatherWarningResponse(WeatherWarningBase):
 
 
 class SystemAlertBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     alert_type: str
     title: str
     message: str
@@ -141,7 +155,7 @@ class SystemAlertBase(BaseModel):
 
 
 class SystemAlertCreate(SystemAlertBase):
-    pass
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SystemAlertResponse(SystemAlertBase):
@@ -153,6 +167,8 @@ class SystemAlertResponse(SystemAlertBase):
 
 
 class RiskOutlook(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     outlook_days: int
     risk_level: str
     avg_max_temp: Optional[float] = None
@@ -162,6 +178,8 @@ class RiskOutlook(BaseModel):
 
 
 class WeatherSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     current: List[WeatherReadingResponse]
     forecast: List[WeatherForecastDayResponse]
     warnings: List[WeatherWarningResponse]
