@@ -6,7 +6,23 @@ RiskScore = min(30, (W + H + V) * M)
 All thresholds, multipliers, and state boundaries are loaded from
 the admin-editable RiskFormulaConfig in the database.
 """
+import re
 from typing import Optional, Dict, Any, List
+
+
+# Word-boundary regexes for HKO signal matching. The looser `t8 in signal`
+# substring check previously matched strings like "t80" and "super_t8",
+# which produced false positives. These patterns require the signal to
+# be the standalone label.
+_T8_TYPE_RE = re.compile(r"\b(?:signal no\.?\s*8|gale or storm signal no\.?\s*8)\b", re.IGNORECASE)
+_T8_SIGNAL_RE = re.compile(r"^t8$", re.IGNORECASE)
+
+
+def _is_t8(warning: Dict[str, Any]) -> bool:
+    """True if the warning dict describes a Typhoon Signal No. 8 (T8)."""
+    w_type = str(warning.get("warning_type", "")).lower()
+    signal = str(warning.get("signal", "")).lower()
+    return bool(_T8_TYPE_RE.search(w_type) or _T8_SIGNAL_RE.match(signal))
 
 
 def lookup_wbt_score(wbt: float, thresholds: List[Dict[str, Any]]) -> int:
@@ -56,29 +72,38 @@ def lookup_warning_multiplier(warnings: List[Dict[str, Any]], multipliers: Dict[
     if not warnings:
         return multipliers.get("none", 1.0)
 
-    warning_signals = []
-    for w in warnings:
-        w_type = str(w.get("warning_type", "")).lower()
-        signal = str(w.get("signal", "")).lower()
-        warning_signals.append((w_type, signal))
+    def matches(wt: str, sig: str, key: str) -> bool:
+        if key == "t8":
+            return bool(_T8_TYPE_RE.search(wt) or _T8_SIGNAL_RE.match(sig))
+        if key == "black_rain":
+            return "black rainstorm" in wt or sig == "black"
+        if key == "t3":
+            return "signal no. 3" in wt or "strong wind" in wt or sig == "t3"
+        if key == "t1_or_red_rain":
+            return (
+                "standby signal no. 1" in wt
+                or "signal no. 1" in wt
+                or "red rainstorm" in wt
+                or sig == "red"
+            )
+        if key == "thunderstorm_or_amber_rain":
+            return "thunderstorm" in wt or "amber rainstorm" in wt or sig == "amber"
+        return False
 
     # Priority order (highest multiplier first)
-    priority_checks = [
-        # T8: Gale or Storm Signal No. 8
-        ("t8", lambda wt, sig: "signal no. 8" in wt or "gale or storm" in wt or "t8" in sig),
-        # Black Rainstorm
-        ("black_rain", lambda wt, sig: "black rainstorm" in wt or "black" in sig),
-        # T3: Strong Wind Signal No. 3
-        ("t3", lambda wt, sig: "signal no. 3" in wt or "strong wind" in wt or "t3" in sig),
-        # T1 or Red Rainstorm
-        ("t1_or_red_rain", lambda wt, sig: "standby signal no. 1" in wt or "signal no. 1" in wt or "red rainstorm" in wt or "red" in sig),
-        # Thunderstorm or Amber Rainstorm
-        ("thunderstorm_or_amber_rain", lambda wt, sig: "thunderstorm" in wt or "amber rainstorm" in wt or "amber" in sig),
-    ]
+    priority = (
+        "t8",
+        "black_rain",
+        "t3",
+        "t1_or_red_rain",
+        "thunderstorm_or_amber_rain",
+    )
 
-    for key, check in priority_checks:
-        for wt, sig in warning_signals:
-            if check(wt, sig):
+    for w in warnings:
+        wt = str(w.get("warning_type", "")).lower()
+        sig = str(w.get("signal", "")).lower()
+        for key in priority:
+            if matches(wt, sig, key):
                 return multipliers.get(key, multipliers.get("none", 1.0))
 
     return multipliers.get("none", 1.0)
@@ -145,15 +170,10 @@ def compute_risk_score_v2(
     # Step 6: T8 floor rule
     t8_applied = False
     t8 = config["t8_floor"]
-    if t8["enabled"]:
-        for w_item in active_warnings:
-            w_type = str(w_item.get("warning_type", "")).lower()
-            signal = str(w_item.get("signal", "")).lower()
-            if "signal no. 8" in w_type or "gale or storm" in w_type or "t8" in signal:
-                if raw_score < t8["min_score"]:
-                    raw_score = t8["min_score"]
-                    t8_applied = True
-                break
+    if t8["enabled"] and any(_is_t8(w_item) for w_item in active_warnings):
+        if raw_score < t8["min_score"]:
+            raw_score = t8["min_score"]
+            t8_applied = True
 
     # Step 7: Cap at 30
     risk_score = min(30.0, raw_score)

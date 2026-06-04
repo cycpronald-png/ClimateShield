@@ -15,6 +15,7 @@ from backend.database import engine, DATABASE_URL
 logger = logging.getLogger(__name__)
 
 from backend.database import SessionLocal
+from backend.services.counters import increment_counter
 from backend.services.hko_client import hko
 from backend.services.weather_orchestrator import persist_weather_data, run_hne_daily_check
 from backend.services.agent_event_bus import emit_agent_log
@@ -33,14 +34,13 @@ async def _poll_and_persist() -> None:
     emit_agent_log("meteorologist", "action", "Starting HKO full poll...")
     try:
         raw = await hko.fetch_all(lang="en")
-        from backend.services.counters import increment_counter
         increment_counter(db, "hko_fetches")
         summary = persist_weather_data(db, raw)
         emit_agent_log("meteorologist", "message", f"Poll complete: {summary.get('readings_persisted', 0)} readings persisted")
-        print(f"[Scheduler] HKO poll completed: {summary}")
+        logger.info("HKO poll completed: %s", summary)
     except Exception as e:
         emit_agent_log("meteorologist", "error", f"Poll failed: {e}")
-        print(f"[Scheduler] HKO poll error: {e}")
+        logger.exception("HKO poll error: %s", e)
     finally:
         db.close()
 
@@ -54,10 +54,10 @@ async def _daily_hne_check() -> None:
     try:
         count = run_hne_daily_check(db)
         emit_agent_log("auditor", "message", f"HNE daily check: {count} alerts created")
-        print(f"[Scheduler] HNE daily check: {count} alerts created")
+        logger.info("HNE daily check: %d alerts created", count)
     except Exception as e:
         emit_agent_log("auditor", "error", f"HNE check error: {e}")
-        print(f"[Scheduler] HNE check error: {e}")
+        logger.exception("HNE check error: %s", e)
     finally:
         db.close()
 
@@ -70,14 +70,13 @@ async def _hourly_forecast_refresh() -> None:
     emit_agent_log("meteorologist", "action", "Starting hourly forecast refresh...")
     try:
         raw = await hko.fetch_all(lang="en")
-        from backend.services.counters import increment_counter
         increment_counter(db, "hko_fetches")
         summary = persist_weather_data(db, raw)
         emit_agent_log("meteorologist", "message", f"Forecast refresh: {summary.get('readings_persisted', 0)} readings updated")
-        print(f"[Scheduler] Hourly forecast refresh: {summary}")
+        logger.info("Hourly forecast refresh: %s", summary)
     except Exception as e:
         emit_agent_log("meteorologist", "error", f"Forecast refresh error: {e}")
-        print(f"[Scheduler] Forecast refresh error: {e}")
+        logger.exception("Forecast refresh error: %s", e)
     finally:
         db.close()
 
@@ -92,15 +91,14 @@ async def _scheduled_refresh(is_retry: bool = False, job_id: str | None = None) 
     emit_agent_log("meteorologist", "action", f"Starting HKO {job_label} refresh...")
     try:
         raw = await hko.fetch_all(lang="en")
-        from backend.services.counters import increment_counter
         increment_counter(db, "hko_fetches")
         summary = persist_weather_data(db, raw)
         _write_last_refresh(success=True)
         emit_agent_log("meteorologist", "message", f"{job_label} refresh complete: {summary.get('readings_persisted', 0)} readings")
-        print(f"[Scheduler] HKO {job_label} refresh completed: {summary}")
+        logger.info("HKO %s refresh completed: %s", job_label, summary)
     except Exception as e:
         emit_agent_log("meteorologist", "error", f"{job_label} refresh failed: {e}")
-        print(f"[Scheduler] HKO {job_label} refresh error: {e}")
+        logger.exception("HKO %s refresh error: %s", job_label, e)
         if not is_retry:
             retry_at = datetime.now(timezone.utc) + timedelta(hours=1)
             original_job_id = job_id or "unknown"
@@ -117,7 +115,7 @@ async def _scheduled_refresh(is_retry: bool = False, job_id: str | None = None) 
                 misfire_grace_time=300,
             )
             emit_agent_log("orchestrator", "message", f"Scheduled retry {retry_id} at {retry_at.isoformat()}")
-            print(f"[Scheduler] Scheduled retry {retry_id} at {retry_at}")
+            logger.info("Scheduled retry %s at %s", retry_id, retry_at)
     finally:
         db.close()
 
@@ -133,7 +131,7 @@ def checkpoint_wal():
         emit_agent_log("orchestrator", "message", "WAL checkpoint completed.")
     except Exception as e:
         emit_agent_log("orchestrator", "error", f"WAL checkpoint failed: {e}")
-        print(f"[Scheduler] WAL checkpoint failed: {e}")
+        logger.exception("WAL checkpoint failed: %s", e)
 
 
 def start_scheduler() -> None:
