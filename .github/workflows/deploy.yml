@@ -14,19 +14,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
-      - name: Build
-        run: npm run build
-        
+
+      # ``build:ghpages`` sets GITHUB_REPOSITORY (auto-populated by the
+      # runner) and VITE_STATIC_MODE=1 so the bundle bakes in the
+      # bundled public/data/*.json lookups under the /<repo>/ base path.
+      - name: Build (static, GitHub Pages)
+        run: npm run build:ghpages
+
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
