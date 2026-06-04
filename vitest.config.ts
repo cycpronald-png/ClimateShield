@@ -23,5 +23,18 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },
+  define: {
+    // In the static-mode unit tests we want STATIC_MODE=true so the
+    // api.ts module picks the right branch at import time. The
+    // build-time Vite does this via its own define; we mirror it
+    // here for vitest so tests don't accidentally exercise the
+    // live API path.
+    "import.meta.env.VITE_STATIC_MODE": JSON.stringify(
+      process.env.VITE_STATIC_MODE ?? "",
+    ),
+    "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
+      process.env.VITE_API_BASE_URL ?? "",
+    ),
+  },
 });
 

@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "build:ghpages": "GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-user/ClimateShield} VITE_STATIC_MODE=1 vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'tests/metrics.test.ts'",
+    "test:static": "VITE_STATIC_MODE=1 vitest run tests/metrics.test.ts",
     "test:ghpages": "npm run build:ghpages && vitest run tests/ghpages.test.ts",
     "verify:all": "tsc -b --noEmit && vitest run"
   },

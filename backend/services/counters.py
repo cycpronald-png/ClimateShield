@@ -8,7 +8,10 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from backend import models
 
-COUNTER_NAMES = {
+# Canonical counter list, in display order. Used by ``get_all_counters``
+# so the API response is always in a deterministic order, regardless of
+# the row insertion sequence in the database.
+COUNTER_NAMES = (
     "hko_fetches",
     "weather_readings",
     "wbt_calculations",
@@ -17,7 +20,8 @@ COUNTER_NAMES = {
     "forecast_days",
     "warnings",
     "hne_checks",
-}
+)
+COUNTER_SET = frozenset(COUNTER_NAMES)
 
 
 def increment_counter(db: Session, name: str, amount: int = 1) -> int:
@@ -25,8 +29,8 @@ def increment_counter(db: Session, name: str, amount: int = 1) -> int:
     Atomically increment a named counter. Creates the row if absent.
     Returns the new total.
     """
-    if name not in COUNTER_NAMES:
-        raise ValueError(f"Unknown counter: {name}. Valid: {COUNTER_NAMES}")
+    if name not in COUNTER_SET:
+        raise ValueError(f"Unknown counter: {name}. Valid: {sorted(COUNTER_SET)}")
 
     row = db.query(models.GenerationCounter).filter_by(name=name).with_for_update().first()
     if row:
@@ -40,17 +44,20 @@ def increment_counter(db: Session, name: str, amount: int = 1) -> int:
 
 
 def get_all_counters(db: Session) -> dict:
-    """Return all counter names and totals as a flat dict."""
+    """Return all counter names and totals as a flat dict.
+
+    Always returns exactly the 8 canonical keys in canonical order;
+    missing rows surface as 0. Deterministic across requests so the
+    Settings panel renders the same grid layout every load.
+    """
     rows = db.query(models.GenerationCounter).all()
-    result = {name: 0 for name in COUNTER_NAMES}
-    for row in rows:
-        result[row.name] = row.total
-    return result
+    by_name = {row.name: row.total for row in rows}
+    return {name: int(by_name.get(name, 0)) for name in COUNTER_NAMES}
 
 
 def get_counter(db: Session, name: str) -> int:
     """Return the current total for a single counter."""
-    if name not in COUNTER_NAMES:
+    if name not in COUNTER_SET:
         raise ValueError(f"Unknown counter: {name}")
     row = db.query(models.GenerationCounter).filter_by(name=name).first()
     return row.total if row else 0

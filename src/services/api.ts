@@ -491,8 +491,11 @@ export const api = {
 
         async getMetrics(): Promise<Record<string, number>> {
             if (STATIC_MODE) {
-                // Combine persisted state.json counters with session-local increments.
-                let base: Record<string, number> = {
+                // Build a clean object containing ONLY the 8 counter keys.
+                // The previous implementation spread the entire state.json
+                // which leaked 8 non-numeric fields (wbt_thresholds, etc.)
+                // into the panel and visually hid the real metrics.
+                const counters: Record<string, number> = {
                     hko_fetches: 0,
                     weather_readings: 0,
                     wbt_calculations: 0,
@@ -506,15 +509,26 @@ export const api = {
                     const res = await fetch(withDailyCacheBust(`${STATIC_BASE}state.json`));
                     if (res.ok) {
                         const data = await res.json();
-                        base = { ...base, ...data };
+                        for (const k of Object.keys(counters)) {
+                            if (typeof data[k] === 'number' && Number.isFinite(data[k])) {
+                                counters[k] = data[k];
+                            }
+                        }
                     }
-                } catch { /* ignore */ }
+                } catch {
+                    /* ignore */
+                }
                 try {
                     const local = JSON.parse(localStorage.getItem('climateshield_metrics') ?? '{}');
-                    return { ...base, ...local };
+                    for (const k of Object.keys(counters)) {
+                        if (typeof local[k] === 'number' && Number.isFinite(local[k])) {
+                            counters[k] += local[k];
+                        }
+                    }
                 } catch {
-                    return base;
+                    /* ignore */
                 }
+                return counters;
             }
             return apiFetch<Record<string, number>>('/api/weather/metrics', { method: 'POST' });
         },
