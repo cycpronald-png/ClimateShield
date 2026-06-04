@@ -13,6 +13,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // VITE_API_BASE_URL is the optional base for the FastAPI client.
+  // VITE_STATIC_MODE=1 opts the frontend into reading bundled
+  // public/data/*.json (used for GitHub Pages previews without a backend).
+  // Production deployments on the same host should leave these unset.
+  define: {
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL ?? ''),
+    'import.meta.env.VITE_STATIC_MODE': JSON.stringify(process.env.VITE_STATIC_MODE ?? ''),
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

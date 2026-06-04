@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
-import { useOfflineCache } from '@/hooks/useOfflineCache';
 import { OfflineBanner } from '@/components/OfflineBanner';
-import { useRetry } from '@/context/RetryContext';
+import { useQueryClient } from '@tanstack/react-query';
 import type { WeatherReading, WeatherForecastDay, TrendPoint } from '@/sections/risk-intelligence/types';
 import { HotNightMonitor } from '@/sections/risk-intelligence/components/HotNightMonitor';
 import { RiskGrid } from '@/sections/risk-intelligence/components/RiskGrid';
@@ -18,10 +17,22 @@ import { WarningsCard } from '@/sections/risk-intelligence/components/WarningsCa
 import { AlertTriangle, RefreshCw, Info,  } from 'lucide-react';
 import { normalizeTrendDates } from '@/lib/localDates';
 
+function readFromLocalStorage<T>(key: string): { data: T; timestamp: number } | null {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
 export default function RiskIntelligence() {
-    const { read, write } = useOfflineCache();
-    const { retryKey, triggerRetry } = useRetry();
-    const [readings, setReadings] = useState<WeatherReading[]>(() => read<WeatherReading[]>("risk_intelligence")?.data ?? []);
+    const queryClient = useQueryClient();
+    const triggerRetry = () => {
+        queryClient.invalidateQueries();
+    };
+    const [readings, setReadings] = useState<WeatherReading[]>(() => readFromLocalStorage<WeatherReading[]>("risk_intelligence")?.data ?? []);
     const [forecast, setForecast] = useState<WeatherForecastDay[]>([]);
     const [trends, setTrends] = useState<TrendPoint[]>([]);
     const [riskConfig, setRiskConfig] = useState<any>(null);
@@ -33,7 +44,7 @@ export default function RiskIntelligence() {
     const [error, setError] = useState<string | null>(null);
     const [isOffline, setIsOffline] = useState(false);
     const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<number | null>(
-        () => read<WeatherReading[]>("risk_intelligence")?.timestamp ?? null
+        () => readFromLocalStorage<WeatherReading[]>("risk_intelligence")?.timestamp ?? null,
     );
     // Open-Meteo beta flag for extended 14-day forecast (shared with Settings page)
     const [openMeteoBeta] = useState<boolean>(() => {
@@ -66,7 +77,14 @@ export default function RiskIntelligence() {
                 ALLOWED_STATIONS.includes(r.station)
             );
             setReadings(filteredReadings);
-            write("risk_intelligence", filteredReadings);
+            try {
+                localStorage.setItem(
+                    "risk_intelligence",
+                    JSON.stringify({ data: filteredReadings, timestamp: Date.now() }),
+                );
+            } catch {
+                /* localStorage unavailable — ignore */
+            }
             setLastSuccessfulFetch(Date.now());
             setForecast(Array.isArray(forecastData) ? forecastData : []);
             const backward = (trendsData?.backward || []).map((t: any) => ({ ...t, type: 'history' as const }));
@@ -75,7 +93,7 @@ export default function RiskIntelligence() {
             if (riskCfg) setRiskConfig(riskCfg);
         } catch (e) {
             console.error('RiskIntelligence fetch error:', e);
-            const cached = read<WeatherReading[]>("risk_intelligence");
+            const cached = readFromLocalStorage<WeatherReading[]>("risk_intelligence");
             if (cached && cached.data.length > 0) {
                 setReadings(cached.data);
                 setLastSuccessfulFetch(cached.timestamp);
@@ -86,13 +104,13 @@ export default function RiskIntelligence() {
         } finally {
             setLoading(false);
         }
-    }, [read, write, openMeteoBeta]);
+    }, [openMeteoBeta]);
 
     useEffect(() => {
         fetchAll();
         const iv = setInterval(fetchAll, 300000); // 5 minutes
         return () => clearInterval(iv);
-    }, [fetchAll, retryKey]);
+    }, [fetchAll]);
 
     // Check if extended forecast data is actually available when beta is enabled
     const hasExtendedData = forecast.some(d => d.source === 'open_meteo');

@@ -5,11 +5,14 @@ import { DonationsTab } from '@/components/admin/donations/DonationsTab';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WarningsCard } from '@/sections/risk-intelligence/components/WarningsCard';
 import { OfflineBanner } from '@/components/OfflineBanner';
-import { useRetry } from '@/context/RetryContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ControlPlane() {
     const { districts, activeWarnings, loading, error, isOffline, lastSuccessfulFetch } = useControlPlaneData();
-    const { triggerRetry } = useRetry();
+    const queryClient = useQueryClient();
+    const triggerRetry = () => {
+        queryClient.invalidateQueries();
+    };
 
     return (
         <div className="h-full flex flex-col">

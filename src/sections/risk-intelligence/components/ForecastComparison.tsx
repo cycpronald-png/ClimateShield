@@ -98,7 +98,7 @@ export function ForecastComparison({ forecast, onScoreClick, onRefresh, riskConf
                         const monthDay = d ? `${d.slice(4, 6)}-${d.slice(6, 8)}` : '';
 
                         const score = day.composite_risk_score ?? 0;
-                        const wbtPeak = day.wet_bulb_peak !== undefined
+                        const wbtPeak = day.wet_bulb_peak != null
                             ? `${day.wet_bulb_peak.toFixed(1)}°C`
                             : '—';
                         const scoreMeta = stateFromScoreWithConfig(score);
@@ -112,7 +112,7 @@ export function ForecastComparison({ forecast, onScoreClick, onRefresh, riskConf
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <div className="inline-flex items-center justify-center w-8 h-8 shrink-0">
-                                            <WeatherIcon code={day.icon_code} />
+                                            <WeatherIcon code={day.icon_code ?? 0} />
                                         </div>
                                         <div>
                                             <div className="font-semibold text-sm">{day.min_temp ?? '—'}° – {day.max_temp ?? '—'}°</div>

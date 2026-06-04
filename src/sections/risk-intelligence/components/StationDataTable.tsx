@@ -66,7 +66,7 @@ export function StationDataTable({ readings }: StationDataTableProps) {
                                     {r.wet_bulb_temp_c?.toFixed(1) ?? '—'}°C
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Badge variant={riskBadgeVariant(r.risk_level)} className="text-[10px] h-5">
+                                    <Badge variant={riskBadgeVariant(r.risk_level ?? 'Safe')} className="text-[10px] h-5">
                                         {r.risk_level}
                                     </Badge>
                                 </TableCell>

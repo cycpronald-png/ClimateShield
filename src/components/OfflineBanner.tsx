@@ -1,6 +1,6 @@
 import { WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatStaleTimestamp } from "@/hooks/useOfflineCache";
+import { formatStaleTimestamp } from "@/lib/formatStale";
 
 interface OfflineBannerProps {
   lastSuccessfulFetch: number | null;

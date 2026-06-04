@@ -1,142 +1,125 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '@/services/api';
-import { useOfflineCache } from '@/hooks/useOfflineCache';
-import { useRetry } from '@/context/RetryContext';
+/**
+ * Backwards-compatible facade over the TanStack Query hooks.
+ *
+ * Existing pages import this and get a hook that:
+ *  - subscribes to ``useControlPlane`` + ``useWarnings``
+ *  - re-derives the legacy ``District[]`` shape with risk-level strings
+ *  - pulls a live risk score per station (matching the prior behaviour)
+ */
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    liveScoreQuery,
+    useControlPlane,
+    useLiveScore,
+    useWarnings,
+} from '@/services/queryClient';
+import { useQueryClient } from '@tanstack/react-query';
 import type { District, TrendDirection } from '@/sections/control-plane/types';
 
-export function useControlPlaneData() {
-    const { retryKey } = useRetry();
-    const { read, write } = useOfflineCache();
-    const [districts, setDistricts] = useState<District[]>(() => read<District[]>("control_plane")?.data ?? []);
-    const [activeWarnings, setActiveWarnings] = useState<Array<{ warning_type: string; signal: string | null }>>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isOffline, setIsOffline] = useState(false);
-    const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<number | null>(
-        () => read<District[]>("control_plane")?.timestamp ?? null
-    );
-    const attemptedRefresh = useRef(false);
-    const prevHneRef = useRef<Record<string, number | null>>({});
-
-    const fetchData = useCallback(async (allowRefresh = true) => {
-        setLoading(true);
-        setError(null);
-        setIsOffline(false);
-        try {
-            const [readings, warnings] = await Promise.all([
-                api.weather.getCurrent(),
-                api.weather.getWarnings().catch(() => []),
-            ]);
-            const ALLOWED_STATIONS = [
-                'Hong Kong Observatory',
-                "Kai Tak Runway Park",
-                "King's Park",
-                'Kowloon City',
-                'Sham Shui Po',
-            ];
-            const stations = (readings || []).filter((r: any) => ALLOWED_STATIONS.includes(r.station));
-
-            // If no data and we haven't tried refreshing yet, trigger a manual refresh
-            if (stations.length === 0 && allowRefresh && !attemptedRefresh.current) {
-                attemptedRefresh.current = true;
-                try {
-                    // Wait a moment for DB to persist, then re-fetch without allowing another refresh
-                    await new Promise(r => setTimeout(r, 1500));
-                    await fetchData(false);
-                    return;
-                } catch (refreshErr: any) {
-                    setError(refreshErr.message || 'Failed to refresh weather data from HKO. The service may be temporarily unavailable.');
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            const enriched = await Promise.all(stations.map(async (r: any) => {
-                const wbt = r.wet_bulb_temp_c ?? 0;
-                const temp = r.temp_c ?? 0;
-                const rh = r.humidity_pct ?? 0;
-                const hne = r.hne ?? null;
-
-                // Fetch the live score dynamically using getLiveScore
-                const liveScoreData = await api.weather.getLiveScore(r.station).catch(() => ({
-                    value: r.composite_risk_score ?? 0,
-                    state: r.risk_level || "Safe",
-                    breakdown: ""
-                }));
-
-                const compositeScore = liveScoreData.value;
-                const stateName = liveScoreData.state;
-
-                let riskLevel: District['riskLevel'] = 'low';
-                if (stateName === 'Purple') riskLevel = 'critical';
-                else if (stateName === 'Red') riskLevel = 'high';
-                else if (stateName === 'Yellow') riskLevel = 'moderate';
-                else riskLevel = 'low'; // Safe or Low
-
-                const id = r.station || r.id || `station-${Math.random().toString(36).substr(2, 9)}`;
-                const prevHne = prevHneRef.current[id] ?? null;
-                let hneTrend: TrendDirection = 'stable';
-                if (hne !== null && prevHne !== null) {
-                    const delta = hne - prevHne;
-                    if (delta > 0.5) hneTrend = 'up';
-                    else if (delta < -0.5) hneTrend = 'down';
-                }
-                prevHneRef.current[id] = hne;
-
-                // Generate synthetic history from current reading
-                const history = Array.from({ length: 7 }, (_, i) => {
-                    const variation = Math.sin(i) * 1.5;
-                    return Math.max(0, Math.min(30, compositeScore + variation));
-                });
-
-                return {
-                    id,
-                    name: r.station || r.district || 'Unknown Station',
-                    riskScore: compositeScore,
-                    riskLevel,
-                    trend: 'stable' as const,
-                    primaryDriver: liveScoreData.breakdown || (wbt > 31.5 ? `Wet-Bulb ${wbt.toFixed(1)}°C` : `Temp ${temp}°C / RH ${rh}%`),
-                    lastUpdated: r.recorded_at || new Date().toISOString(),
-                    history,
-                    hne,
-                    hneTrend,
-                };
-            }));
-
-            setDistricts(enriched);
-            write("control_plane", enriched);
-            setLastSuccessfulFetch(Date.now());
-            setActiveWarnings((warnings || []).filter((w: any) => w.status === 'active').map((w: any) => ({
-                warning_type: w.warning_type,
-                signal: w.signal,
-            })));
-        } catch (e) {
-            console.error('ControlPlane fetch error:', e);
-            const cached = read<District[]>("control_plane");
-            if (cached && cached.data.length > 0) {
-                setDistricts(cached.data);
-                setLastSuccessfulFetch(cached.timestamp);
-                setIsOffline(true);
-            } else {
-                setError(e instanceof Error ? e.message : 'Failed to load weather data');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        attemptedRefresh.current = false;
-    }, [retryKey]);
-
-    useEffect(() => {
-        fetchData();
-        const iv = setInterval(() => {
-            attemptedRefresh.current = false;
-            fetchData();
-        }, 300000); // 5 minutes
-        return () => clearInterval(iv);
-    }, [fetchData, retryKey]);
-
-    return { districts, activeWarnings, loading, error, isOffline, lastSuccessfulFetch, refetch: fetchData };
+interface UseControlPlaneDataResult {
+    districts: District[];
+    activeWarnings: Array<{ warning_type: string; signal: string | null }>;
+    loading: boolean;
+    error: string | null;
+    isOffline: boolean;
+    lastSuccessfulFetch: number | null;
+    refetch: () => Promise<unknown>;
 }
+
+function stateToRiskLevel(state: string | null | undefined): District['riskLevel'] {
+    if (state === 'Purple') return 'critical';
+    if (state === 'Red') return 'high';
+    if (state === 'Yellow') return 'moderate';
+    return 'low';
+}
+
+export function useControlPlaneData(): UseControlPlaneDataResult {
+    const control = useControlPlane();
+    const warnings = useWarnings();
+    const queryClient = useQueryClient();
+
+    const [districts, setDistricts] = useState<District[]>([]);
+    const prevHneRef = useRef<Record<string, number | null>>({});
+    const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<number | null>(null);
+
+    // Per-station live score (kept for backwards compatibility with the
+    // old hook surface; in a future iteration we can replace this with
+    // useQueries({ queries: stations.map(liveScoreQuery) })
+    useEffect(() => {
+        let cancelled = false;
+        async function prime() {
+            const next: District[] = [];
+            for (const r of control.data ?? []) {
+                try {
+                    const live = await queryClient.fetchQuery(liveScoreQuery(r.station));
+                    if (cancelled) return;
+                    const id = r.station || `station-${r.id}`;
+                    const prevHne = prevHneRef.current[id] ?? null;
+                    let hneTrend: TrendDirection = 'stable';
+                    if (r.hne !== null && prevHne !== null) {
+                        const delta = r.hne - prevHne;
+                        if (delta > 0.5) hneTrend = 'up';
+                        else if (delta < -0.5) hneTrend = 'down';
+                    }
+                    prevHneRef.current[id] = r.hne ?? null;
+                    next.push({
+                        id,
+                        name: r.station,
+                        riskScore: live.value,
+                        riskLevel: stateToRiskLevel(live.state),
+                        trend: 'stable',
+                        primaryDriver:
+                            live.breakdown ||
+                            (r.wet_bulb_temp_c && r.wet_bulb_temp_c > 31.5
+                                ? `Wet-Bulb ${r.wet_bulb_temp_c.toFixed(1)}°C`
+                                : `Temp ${r.temp_c}°C / RH ${r.humidity_pct}%`),
+                        lastUpdated: r.recorded_at,
+                        // Real history would come from /api/weather/history/readings;
+                        // until then, surface a single-point array so consumers
+                        // don't crash on a synthetic sine wave.
+                        history: [live.value],
+                        hne: r.hne ?? null,
+                        hneTrend,
+                    });
+                } catch (err) {
+                    // Station-level failures shouldn't fail the whole hook
+                    console.warn(`useControlPlaneData: failed to load live score for ${r.station}`, err);
+                }
+            }
+            if (!cancelled) {
+                setDistricts(next);
+                setLastSuccessfulFetch(Date.now());
+            }
+        }
+        prime();
+        return () => {
+            cancelled = true;
+        };
+    }, [control.data, queryClient]);
+
+    const isOffline = control.isError || (control.data?.length ?? 0) === 0;
+    const error = control.error instanceof Error ? control.error.message : null;
+    const activeWarnings = useMemo(
+        () =>
+            (warnings.data ?? [])
+                .filter((w) => w.status === 'active')
+                .map((w) => ({ warning_type: w.warning_type, signal: w.signal })),
+        [warnings.data],
+    );
+
+    return {
+        districts,
+        activeWarnings,
+        loading: control.isLoading || districts.length === 0,
+        error,
+        isOffline,
+        lastSuccessfulFetch,
+        refetch: async () => {
+            await Promise.all([control.refetch(), warnings.refetch()]);
+        },
+    };
+}
+
+// Re-export so call sites that import ``useLiveScore`` from this file
+// keep working without an extra import.
+export { useLiveScore };

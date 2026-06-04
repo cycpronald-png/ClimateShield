@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build:ghpages": "GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-user/ClimateShield} VITE_STATIC_MODE=1 vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:ghpages": "npm run build:ghpages && vitest run tests/ghpages.test.ts",
+    "verify:all": "tsc -b --noEmit && vitest run"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
@@ -19,6 +23,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@tanstack/react-query": "^5.59.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
@@ -39,9 +44,11 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.1.8"
   }
 }
