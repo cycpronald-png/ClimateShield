@@ -59,35 +59,27 @@
   ],
   "forward": [
     {
-      "date": "20260604",
-      "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
-      "wbt": 28.03,
-      "hne": 18.0
-    },
-    {
       "date": "20260605",
       "type": "forecast",
-      "composite_risk_score": 24.0,
-      "risk_level": "Red",
-      "wbt": 30.98,
-      "hne": 20.0
+      "composite_risk_score": 30.0,
+      "risk_level": "Purple",
+      "wbt": 27.02,
+      "hne": 18.0
     },
     {
       "date": "20260606",
       "type": "forecast",
-      "composite_risk_score": 26.0,
-      "risk_level": "Purple",
-      "wbt": 30.35,
-      "hne": 16.0
+      "composite_risk_score": 8.0,
+      "risk_level": "Safe",
+      "wbt": 29.4,
+      "hne": 14.0
     },
     {
       "date": "20260607",
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 28.83,
+      "wbt": 29.2,
       "hne": 12.0
     },
     {
@@ -95,7 +87,7 @@
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 27.87,
+      "wbt": 28.23,
       "hne": 10.0
     },
     {
@@ -103,23 +95,23 @@
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 28.23,
-      "hne": 10.0
+      "wbt": 27.27,
+      "hne": 8.0
     },
     {
       "date": "20260610",
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 28.23,
-      "hne": 10.0
+      "wbt": 27.27,
+      "hne": 8.0
     },
     {
       "date": "20260611",
       "type": "forecast",
-      "composite_risk_score": 0.0,
+      "composite_risk_score": 4.0,
       "risk_level": "Safe",
-      "wbt": 26.91,
+      "wbt": 26.54,
       "hne": 8.0
     },
     {
@@ -129,6 +121,14 @@
       "risk_level": "Safe",
       "wbt": 27.87,
       "hne": 10.0
+    },
+    {
+      "date": "20260613",
+      "type": "forecast",
+      "composite_risk_score": 8.0,
+      "risk_level": "Safe",
+      "wbt": 28.83,
+      "hne": 12.0
     }
   ]
 }
