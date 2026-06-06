@@ -1,7 +1,7 @@
 {
   "backward": [
     {
-      "date": "20260528",
+      "date": "20260530",
       "type": "history",
       "composite_risk_score": 4.0,
       "risk_level": "Safe",
@@ -9,7 +9,7 @@
       "hne": 5.2
     },
     {
-      "date": "20260529",
+      "date": "20260531",
       "type": "history",
       "composite_risk_score": 4.0,
       "risk_level": "Safe",
@@ -17,7 +17,7 @@
       "hne": 6.0
     },
     {
-      "date": "20260530",
+      "date": "20260601",
       "type": "history",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
@@ -25,76 +25,68 @@
       "hne": 6.8
     },
     {
-      "date": "20260531",
+      "date": "20260602",
       "type": "history",
-      "composite_risk_score": 16.0,
-      "risk_level": "Low",
+      "composite_risk_score": 4.0,
+      "risk_level": "Safe",
       "wbt": 24.65,
       "hne": 5.2
     },
     {
-      "date": "20260601",
+      "date": "20260603",
       "type": "history",
-      "composite_risk_score": 18.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 4.0,
+      "risk_level": "Safe",
       "wbt": 24.57,
       "hne": 6.0
     },
     {
-      "date": "20260602",
+      "date": "20260604",
       "type": "history",
-      "composite_risk_score": 30.0,
-      "risk_level": "Purple",
+      "composite_risk_score": 8.0,
+      "risk_level": "Safe",
       "wbt": 25.61,
       "hne": 6.8
     },
     {
-      "date": "20260603",
+      "date": "20260605",
       "type": "history",
-      "composite_risk_score": 22.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 4.0,
+      "risk_level": "Safe",
       "wbt": 24.09,
       "hne": 5.2
     }
   ],
   "forward": [
     {
-      "date": "20260605",
-      "type": "forecast",
-      "composite_risk_score": 30.0,
-      "risk_level": "Purple",
-      "wbt": 27.02,
-      "hne": 18.0
-    },
-    {
       "date": "20260606",
       "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
-      "wbt": 29.4,
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
+      "wbt": 27.27,
       "hne": 14.0
     },
     {
       "date": "20260607",
       "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
-      "wbt": 29.2,
-      "hne": 12.0
-    },
-    {
-      "date": "20260608",
-      "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
       "wbt": 28.23,
       "hne": 10.0
     },
     {
+      "date": "20260608",
+      "type": "forecast",
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
+      "wbt": 27.27,
+      "hne": 8.0
+    },
+    {
       "date": "20260609",
       "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
       "wbt": 27.27,
       "hne": 8.0
     },
@@ -103,13 +95,13 @@
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 27.27,
-      "hne": 8.0
+      "wbt": 26.3,
+      "hne": 6.0
     },
     {
       "date": "20260611",
       "type": "forecast",
-      "composite_risk_score": 4.0,
+      "composite_risk_score": 8.0,
       "risk_level": "Safe",
       "wbt": 26.54,
       "hne": 8.0
@@ -117,16 +109,24 @@
     {
       "date": "20260612",
       "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
       "wbt": 27.87,
       "hne": 10.0
     },
     {
       "date": "20260613",
       "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
+      "wbt": 28.83,
+      "hne": 12.0
+    },
+    {
+      "date": "20260614",
+      "type": "forecast",
+      "composite_risk_score": 16.0,
+      "risk_level": "Low",
       "wbt": 28.83,
       "hne": 12.0
     }

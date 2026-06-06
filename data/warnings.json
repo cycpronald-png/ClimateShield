@@ -1,7 +1,12 @@
 [
   {
-    "warning_type": "Very Hot Weather Warning",
-    "signal": "WHOT",
+    "warning_type": "Rainstorm Warning Signal",
+    "signal": "WRAINA",
+    "status": "active"
+  },
+  {
+    "warning_type": "Thunderstorm Warning",
+    "signal": "WTS",
     "status": "active"
   }
 ]
