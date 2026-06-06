@@ -59,11 +59,13 @@ function SingleGauge({
     riskConfig?: RiskConfig | null;
 }) {
     const persistedScore = reading.composite_risk_score;
+    const persistedState = reading.risk_level;
     const hasPersistedScore = persistedScore != null;
-    const score: number = liveScore?.value ?? persistedScore ?? 0;
-    const scoreKnown = liveScore != null || hasPersistedScore;
+    const score: number = persistedScore ?? liveScore?.value ?? 0;
+    const scoreKnown = hasPersistedScore || liveScore != null;
     const pct = scoreToPercent(score);
     const stateMeta = resolveRiskState(score, riskConfig?.state_ranges);
+    const stateName = persistedState ?? stateMeta.name;
     const message = scoreKnown ? getFriendlyMessage(score, riskConfig) : 'Computing risk score…';
     const theoreticalMax = MAX_RISK_SCORE;
     const maxPct = scoreToPercent(theoreticalMax);
@@ -74,7 +76,7 @@ function SingleGauge({
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Badge className={`${scoreKnown ? stateMeta.bg : 'bg-zinc-400'} text-white font-bold text-sm px-3 py-1`}>
-                        {scoreKnown ? stateMeta.name : '---'}
+                        {scoreKnown ? stateName : '---'}
                     </Badge>
                     <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                         {scoreKnown ? score.toFixed(1) : '—'}
