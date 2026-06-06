@@ -7,14 +7,17 @@
  *  - pulls a live risk score per station (matching the prior behaviour)
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     liveScoreQuery,
     useControlPlane,
     useLiveScore,
     useWarnings,
 } from '@/services/queryClient';
-import { useQueryClient } from '@tanstack/react-query';
+import { getActiveRiskConfig } from '@/services/api';
 import type { District, TrendDirection } from '@/sections/control-plane/types';
+import type { RiskConfig } from '@/types/api';
+import { resolveRiskState } from '@/sections/risk-intelligence/utils/riskStates';
 
 interface UseControlPlaneDataResult {
     districts: District[];
@@ -24,13 +27,7 @@ interface UseControlPlaneDataResult {
     isOffline: boolean;
     lastSuccessfulFetch: number | null;
     refetch: () => Promise<unknown>;
-}
-
-function stateToRiskLevel(state: string | null | undefined): District['riskLevel'] {
-    if (state === 'Purple') return 'critical';
-    if (state === 'Red') return 'high';
-    if (state === 'Yellow') return 'moderate';
-    return 'low';
+    riskConfig: RiskConfig | null;
 }
 
 export function useControlPlaneData(): UseControlPlaneDataResult {
@@ -39,6 +36,7 @@ export function useControlPlaneData(): UseControlPlaneDataResult {
     const queryClient = useQueryClient();
 
     const [districts, setDistricts] = useState<District[]>([]);
+    const [riskConfig, setRiskConfig] = useState<RiskConfig | null>(null);
     const prevHneRef = useRef<Record<string, number | null>>({});
     const [lastSuccessfulFetch, setLastSuccessfulFetch] = useState<number | null>(null);
 
@@ -48,6 +46,15 @@ export function useControlPlaneData(): UseControlPlaneDataResult {
     useEffect(() => {
         let cancelled = false;
         async function prime() {
+            let cfg: RiskConfig | null = null;
+            try {
+                cfg = await getActiveRiskConfig();
+            } catch {
+                // Config fetch failure is non-fatal; fall back to defaults
+            }
+            if (cancelled) return;
+            setRiskConfig(cfg);
+
             const next: District[] = [];
             for (const r of control.data ?? []) {
                 try {
@@ -62,11 +69,13 @@ export function useControlPlaneData(): UseControlPlaneDataResult {
                         else if (delta < -0.5) hneTrend = 'down';
                     }
                     prevHneRef.current[id] = r.hne ?? null;
+
+                    const resolved = resolveRiskState(live.value, cfg?.state_ranges);
                     next.push({
                         id,
                         name: r.station,
                         riskScore: live.value,
-                        riskLevel: stateToRiskLevel(live.state),
+                        riskLevel: resolved.name,
                         trend: 'stable',
                         primaryDriver:
                             live.breakdown ||
@@ -114,6 +123,7 @@ export function useControlPlaneData(): UseControlPlaneDataResult {
         error,
         isOffline,
         lastSuccessfulFetch,
+        riskConfig,
         refetch: async () => {
             await Promise.all([control.refetch(), warnings.refetch()]);
         },

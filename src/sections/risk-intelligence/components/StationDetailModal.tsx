@@ -3,20 +3,13 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/Modal';
 import { api } from '@/services/api';
 import type { WeatherReading, WeatherHistoryItem } from '../types';
+import { STATE_COLORS } from '../utils/riskStates';
 
 interface StationDetailModalProps {
     open: boolean;
     station: WeatherReading | null;
     onClose: () => void;
 }
-
-const riskBadgeColors: Record<string, string> = {
-    'Safe': 'bg-emerald-400 text-black',
-    'Low': 'bg-emerald-500 text-white',
-    'Yellow': 'bg-yellow-500 text-black',
-    'Red': 'bg-red-500 text-white',
-    'Purple': 'bg-purple-500 text-white',
-};
 
 export function StationDetailModal({ open, station, onClose }: StationDetailModalProps) {
     const [history, setHistory] = useState<WeatherHistoryItem[]>([]);
@@ -77,7 +70,7 @@ export function StationDetailModal({ open, station, onClose }: StationDetailModa
                     <div>
                         <div className="text-xs text-muted-foreground uppercase tracking-wide">Risk Level</div>
                         <div className="text-lg font-bold">
-                            <Badge className={riskBadgeColors[station.risk_level ?? 'Safe'] || 'bg-zinc-400 text-white'}>
+                            <Badge className={STATE_COLORS[station.risk_level ?? 'Safe'] || 'bg-zinc-400 text-white'}>
                                 {station.risk_level}
                             </Badge>
                         </div>

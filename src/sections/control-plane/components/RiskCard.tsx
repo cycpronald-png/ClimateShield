@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Sparkline } from "./Sparkline";
 import { ArrowUpRight, ArrowDownRight, Minus, Activity, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { STATE_COLORS, STATE_META } from "@/sections/risk-intelligence/utils/riskStates";
 
 interface RiskCardProps {
     district: District;
@@ -14,25 +15,11 @@ interface RiskCardProps {
 }
 
 export function RiskCard({ district, activeWarnings = [], onClick, selected }: RiskCardProps) {
-    const isCritical = district.riskLevel === 'critical';
+    const isCritical = district.riskLevel === 'Purple';
 
-    // Color logic
-    let statusColor = "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300";
-    let sparklineColor = "#a1a1aa"; // zinc-400
-
-    if (district.riskLevel === 'critical') {
-        statusColor = "bg-destructive text-destructive-foreground animate-pulse";
-        sparklineColor = "#ef4444"; // red-500
-    } else if (district.riskLevel === 'high') {
-        statusColor = "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-        sparklineColor = "#f97316"; // orange-500
-    } else if (district.riskLevel === 'moderate') {
-        statusColor = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-        sparklineColor = "#eab308"; // yellow-500
-    } else if (district.riskLevel === 'low') {
-        statusColor = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-        sparklineColor = "#22c55e"; // green-500
-    }
+    // Derive color styling from the unified 5-tier palette
+    const badgeClass = STATE_COLORS[district.riskLevel] ?? "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300";
+    const sparklineColor = STATE_META.find(s => s.name === district.riskLevel)?.color ?? "#a1a1aa";
 
     return (
         <Card
@@ -62,7 +49,7 @@ export function RiskCard({ district, activeWarnings = [], onClick, selected }: R
                             </TooltipContent>
                         </Tooltip>
                     )}
-                    <Badge variant="outline" className={statusColor}>
+                    <Badge className={badgeClass}>
                         {district.riskLevel.toUpperCase()}
                     </Badge>
                 </div>

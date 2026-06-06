@@ -1,5 +1,6 @@
 import type { WeatherReading } from '../types';
 import { cn } from '@/lib/utils';
+import { STATE_META } from '../utils/riskStates';
 
 interface RiskGridProps {
     readings: WeatherReading[];
@@ -8,13 +9,9 @@ interface RiskGridProps {
     onStationDetail?: (station: WeatherReading) => void;
 }
 
-const riskColorMap: Record<string, string> = {
-    'Safe': 'bg-emerald-500',
-    'Low': 'bg-emerald-400',
-    'Yellow': 'bg-yellow-500',
-    'Red': 'bg-red-500',
-    'Purple': 'bg-purple-500',
-};
+function getRiskMeta(level?: string | null) {
+    return STATE_META.find(s => s.name === (level ?? 'Safe')) ?? STATE_META[0];
+}
 
 export function RiskGrid({ readings, selectedStationId, onStationSelect, onStationDetail }: RiskGridProps) {
     if (!readings || readings.length === 0) {
@@ -28,7 +25,7 @@ export function RiskGrid({ readings, selectedStationId, onStationSelect, onStati
     return (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {readings.map((r) => {
-                const riskColor = riskColorMap[r.risk_level ?? 'Safe'] || 'bg-zinc-600';
+                const meta = getRiskMeta(r.risk_level ?? 'Safe');
                 const isSelected = selectedStationId === r.station;
                 return (
                     <button
@@ -44,13 +41,13 @@ export function RiskGrid({ readings, selectedStationId, onStationSelect, onStati
                                 : 'border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:border-zinc-600'
                         )}
                     >
-                        <div className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${riskColor}`} />
+                        <div className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${meta.bg}`} />
                         <div className="text-xs font-medium text-zinc-200 leading-tight">{r.station}</div>
                         <div className="text-[10px] text-zinc-400 mt-1">
                             WB: {r.wet_bulb_temp_c?.toFixed(1) ?? '--'}°C
                         </div>
-                        <div className={`text-[9px] font-bold uppercase mt-1 ${riskColor.replace('bg-', 'text-')}`}>
-                            {r.risk_level}
+                        <div className={`text-[9px] font-bold uppercase mt-1 ${meta.text}`}>
+                            {meta.name}
                         </div>
                     </button>
                 );

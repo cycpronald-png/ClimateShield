@@ -1,4 +1,6 @@
-export type RiskLevel = 'low' | 'moderate' | 'high' | 'critical';
+import type { StateName } from '@/types/api';
+
+export type RiskLevel = StateName;
 export type TrendDirection = 'up' | 'down' | 'stable';
 
 export interface AgentMessage {

@@ -3,6 +3,7 @@ import { api } from '@/services/api';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { WeatherReading, WeatherForecastDay, TrendPoint } from '@/sections/risk-intelligence/types';
+import type { RiskConfig } from '@/types/api';
 import { HotNightMonitor } from '@/sections/risk-intelligence/components/HotNightMonitor';
 import { RiskGrid } from '@/sections/risk-intelligence/components/RiskGrid';
 import { WBTTimeSeriesGraph } from '@/sections/risk-intelligence/components/WBTTimeSeriesGraph';
@@ -35,7 +36,7 @@ export default function RiskIntelligence() {
     const [readings, setReadings] = useState<WeatherReading[]>(() => readFromLocalStorage<WeatherReading[]>("risk_intelligence")?.data ?? []);
     const [forecast, setForecast] = useState<WeatherForecastDay[]>([]);
     const [trends, setTrends] = useState<TrendPoint[]>([]);
-    const [riskConfig, setRiskConfig] = useState<any>(null);
+    const [riskConfig, setRiskConfig] = useState<RiskConfig | null>(null);
     const [selectedStation, setSelectedStation] = useState<string>('Hong Kong Observatory');
     const [modalOpen, setModalOpen] = useState(false);
     const [detailModalOpen, setDetailModalOpen] = useState(false);

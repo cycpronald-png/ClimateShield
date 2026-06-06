@@ -2,16 +2,21 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, User, AlertTriangle } from 'lucide-react';
+import { Users, User, AlertTriangle } from "lucide-react";
 import { api } from '@/services/api';
 import type { WeatherReading } from '../types';
-import { STATE_META, stateFromScore, MAX_RISK_SCORE } from '../utils/riskStates';
+import {
+    STATE_META,
+    MAX_RISK_SCORE,
+    resolveRiskState,
+} from '../utils/riskStates';
+import type { RiskConfig } from '@/types/api';
 
 interface RiskScoreGaugeProps {
     readings: WeatherReading[];
     selectedStation: string;
     onStationSelect?: (station: string) => void;
-    riskConfig?: any;
+    riskConfig?: RiskConfig | null;
 }
 
 interface LiveScoreData {
@@ -32,63 +37,8 @@ function scoreToPercent(score: number): number {
     return Math.max(3, Math.min(100, (score / MAX_RISK_SCORE) * 100));
 }
 
-function getStateMetaWithConfig(score: number, riskConfig?: any) {
-    const ranges = riskConfig?.state_ranges;
-    if (!ranges || ranges.length === 0) {
-        const meta = stateFromScore(score);
-        return {
-            name: meta.name,
-            min: meta.min,
-            max: meta.max,
-            bg: meta.bg,
-            text: meta.text
-        };
-    }
-
-    const scoreRound = Math.round(score);
-    const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
-
-    let foundRange: any = null;
-    for (const pName of priorityOrder) {
-        const r = ranges.find((x: any) => x.name === pName);
-        if (r && scoreRound >= r.min && scoreRound <= r.max) {
-            foundRange = r;
-            break;
-        }
-    }
-    if (!foundRange) {
-        const purple = ranges.find((s: any) => s.name === 'Purple');
-        if (purple && scoreRound >= purple.min) foundRange = purple;
-        else foundRange = ranges.find((s: any) => scoreRound >= s.min && scoreRound <= s.max) ?? ranges[0];
-    }
-
-    const name = foundRange.name;
-    const bgMap: Record<string, string> = {
-        'Safe': 'bg-emerald-500',
-        'Low': 'bg-blue-500',
-        'Yellow': 'bg-yellow-500',
-        'Red': 'bg-red-500',
-        'Purple': 'bg-purple-500'
-    };
-    const textMap: Record<string, string> = {
-        'Safe': 'text-emerald-700 dark:text-emerald-400',
-        'Low': 'text-blue-700 dark:text-blue-400',
-        'Yellow': 'text-yellow-800 dark:text-yellow-500',
-        'Red': 'text-red-700 dark:text-red-400',
-        'Purple': 'text-purple-700 dark:text-purple-400'
-    };
-
-    return {
-        name,
-        min: foundRange.min,
-        max: foundRange.max,
-        bg: bgMap[name] || 'bg-zinc-500',
-        text: textMap[name] || 'text-zinc-700'
-    };
-}
-
-function getFriendlyMessage(score: number, riskConfig?: any): string {
-    const meta = getStateMetaWithConfig(score, riskConfig);
+function getFriendlyMessage(score: number, riskConfig?: RiskConfig | null): string {
+    const meta = resolveRiskState(score, riskConfig?.state_ranges);
     if (meta.name === 'Safe') return 'Safe — No Immediate Risk';
     if (meta.name === 'Low') return 'Low Risk — Continue Monitoring';
     if (meta.name === 'Yellow') return 'Yellow Alert — Outreach Team Notified';
@@ -106,14 +56,14 @@ function SingleGauge({
     reading: WeatherReading;
     liveScore: LiveScoreData | null;
     activeBands: any[];
-    riskConfig?: any;
+    riskConfig?: RiskConfig | null;
 }) {
     const persistedScore = reading.composite_risk_score;
     const hasPersistedScore = persistedScore != null;
     const score: number = liveScore?.value ?? persistedScore ?? 0;
     const scoreKnown = liveScore != null || hasPersistedScore;
     const pct = scoreToPercent(score);
-    const stateMeta = getStateMetaWithConfig(score, riskConfig);
+    const stateMeta = resolveRiskState(score, riskConfig?.state_ranges);
     const message = scoreKnown ? getFriendlyMessage(score, riskConfig) : 'Computing risk score…';
     const theoreticalMax = MAX_RISK_SCORE;
     const maxPct = scoreToPercent(theoreticalMax);
@@ -209,7 +159,7 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect, activeBan
     selectedStation: string;
     onStationSelect?: (station: string) => void;
     activeBands: any[];
-    riskConfig?: any;
+    riskConfig?: RiskConfig | null;
 }) {
     const ALLOWED_STATIONS = [
         'Hong Kong Observatory',
@@ -227,7 +177,7 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect, activeBan
                 const persistedScore = r.composite_risk_score;
                 const hasPersistedScore = persistedScore != null;
                 const score: number = hasPersistedScore ? persistedScore : 0;
-                const meta = getStateMetaWithConfig(score, riskConfig);
+                const meta = resolveRiskState(score, riskConfig?.state_ranges);
                 const pct = scoreToPercent(score);
                 const isSelected = r.station === selectedStation;
 
@@ -334,7 +284,7 @@ export function RiskScoreGauge({ readings, selectedStation, onStationSelect, ris
             'Purple': 'bg-purple-500'
         };
 
-        return ranges.map((r: any) => ({
+        return ranges.map((r) => ({
             name: r.name,
             min: r.min,
             max: r.max,

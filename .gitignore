@@ -36,3 +36,4 @@ backend/.last_refresh.json
 
 # pycache
 __pycache__/
+.gstack/

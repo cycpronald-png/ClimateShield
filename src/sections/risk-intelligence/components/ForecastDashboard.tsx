@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
     ReferenceArea, ResponsiveContainer,
@@ -8,13 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, AlertTriangle, Droplets, Users, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react';
 import type { WeatherForecastDay } from '../types';
-import { stateFromScore, ACTION_MAP, RESOURCE_MAP, MAX_RISK_SCORE } from '../utils/riskStates';
+import {
+    resolveRiskState,
+    ACTION_MAP,
+    RESOURCE_MAP,
+    MAX_RISK_SCORE,
+    STATE_META,
+} from '../utils/riskStates';
+import type { RiskConfig } from '@/types/api';
 import { formatDateKey } from '@/lib/localDates';
 
 interface ForecastDashboardProps {
     forecast: WeatherForecastDay[];
     onScoreClick?: () => void;
-    riskConfig?: any;
+    riskConfig?: RiskConfig | null;
 }
 
 function formatDate(d: string): string {
@@ -26,73 +33,16 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
     const [viewMode, setViewMode] = useState<'full' | 'chart' | 'actions'>('full');
     const [actionsExpanded, setActionsExpanded] = useState(true);
 
-    const stateFromScoreWithConfig = useCallback((score: number) => {
-        const ranges = riskConfig?.state_ranges;
-        if (!ranges || ranges.length === 0) {
-            return stateFromScore(score);
-        }
-
-        const scoreRound = Math.round(score);
-        const priorityOrder = ["Purple", "Red", "Yellow", "Low", "Safe"];
-
-        let foundRange: any = null;
-        for (const pName of priorityOrder) {
-            const r = ranges.find((x: any) => x.name === pName);
-            if (r && scoreRound >= r.min && scoreRound <= r.max) {
-                foundRange = r;
-                break;
-            }
-        }
-        if (!foundRange) {
-            const purple = ranges.find((s: any) => s.name === 'Purple');
-            if (purple && scoreRound >= purple.min) foundRange = purple;
-            else foundRange = ranges.find((s: any) => scoreRound >= s.min && scoreRound <= s.max) ?? ranges[0];
-        }
-
-        const name = foundRange.name;
-        const colorMap: Record<string, string> = {
-            'Safe': '#22c55e',
-            'Low': '#3b82f6',
-            'Yellow': '#eab308',
-            'Red': '#ef4444',
-            'Purple': '#a855f7'
-        };
-        const bgMap: Record<string, string> = {
-            'Safe': 'bg-emerald-500',
-            'Low': 'bg-blue-500',
-            'Yellow': 'bg-yellow-500',
-            'Red': 'bg-red-500',
-            'Purple': 'bg-purple-500'
-        };
-        const textMap: Record<string, string> = {
-            'Safe': 'text-emerald-700',
-            'Low': 'text-blue-700',
-            'Yellow': 'text-yellow-800',
-            'Red': 'text-red-700',
-            'Purple': 'text-purple-700'
-        };
-
-        return {
-            name: name,
-            min: foundRange.min,
-            max: foundRange.max,
-            color: colorMap[name] || '#888888',
-            bg: bgMap[name] || 'bg-zinc-500',
-            text: textMap[name] || 'text-zinc-700',
-            fill: bgMap[name] || 'rgba(128, 128, 128, 0.1)'
-        };
-    }, [riskConfig]);
+    const ranges = riskConfig?.state_ranges;
 
     const activeBandColors = useMemo(() => {
-        const ranges = riskConfig?.state_ranges;
         if (!ranges || ranges.length === 0) {
-            return [
-                { name: 'Safe', min: 0, max: 12, fill: 'rgba(34, 197, 94, 0.10)' },
-                { name: 'Low', min: 13, max: 16, fill: 'rgba(59, 130, 246, 0.10)' },
-                { name: 'Yellow', min: 17, max: 22, fill: 'rgba(234, 179, 8, 0.12)' },
-                { name: 'Red', min: 23, max: 24, fill: 'rgba(239, 68, 68, 0.12)' },
-                { name: 'Purple', min: 25, max: 30, fill: 'rgba(168, 85, 247, 0.12)' },
-            ];
+            return STATE_META.map(s => ({
+                name: s.name,
+                min: s.min,
+                max: s.max,
+                fill: s.fill,
+            }));
         }
 
         const opacityMap: Record<string, string> = {
@@ -103,18 +53,18 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
             'Purple': 'rgba(168, 85, 247, 0.12)'
         };
 
-        return ranges.map((r: any) => ({
+        return ranges.map((r) => ({
             name: r.name,
             min: r.min,
             max: r.max,
             fill: opacityMap[r.name] || 'rgba(128,128,128,0.1)'
         }));
-    }, [riskConfig]);
+    }, [ranges]);
 
     const chartData = useMemo(() => {
         return forecast.map((day) => {
             const score = day.composite_risk_score ?? 0;
-            const meta = stateFromScoreWithConfig(score);
+            const meta = resolveRiskState(score, ranges);
             return {
                 date: formatDate(day.forecast_date),
                 rawDate: day.forecast_date,
@@ -131,18 +81,17 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
                 bg: meta.bg
             };
         });
-    }, [forecast, stateFromScoreWithConfig]);
+    }, [forecast, ranges]);
 
     const stats = useMemo(() => {
         if (chartData.length === 0) return null;
-        
-        const ranges = riskConfig?.state_ranges;
+
         let lowMin = 13;
         let yellowMin = 17;
         if (ranges) {
-            const lowBand = ranges.find((r: any) => r.name === 'Low');
+            const lowBand = ranges.find((r) => r.name === 'Low');
             if (lowBand) lowMin = lowBand.min;
-            const yellowBand = ranges.find((r: any) => r.name === 'Yellow');
+            const yellowBand = ranges.find((r) => r.name === 'Yellow');
             if (yellowBand) yellowMin = yellowBand.min;
         }
 
@@ -182,7 +131,7 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
             actionDays: actionDays.length,
             longestWindow,
         };
-    }, [chartData, riskConfig]);
+    }, [chartData, ranges]);
 
     const forecastRangeLabel = useMemo(() => {
         if (chartData.length === 0) return null;
@@ -250,7 +199,7 @@ export function ForecastDashboard({ forecast, onScoreClick, riskConfig }: Foreca
                                 />
 
                                 {/* State band backgrounds */}
-                                {activeBandColors.map((s: any) => (
+                                {activeBandColors.map((s) => (
                                     <ReferenceArea
                                         key={s.name}
                                         y1={s.min}
