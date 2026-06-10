@@ -28,7 +28,8 @@ const STATIC_BASE = (import.meta.env.BASE_URL ?? '/') + 'data/';
 
 function withDailyCacheBust(path: string): string {
     const separator = path.includes('?') ? '&' : '?';
-    return `${path}${separator}day=${getLocalDateKey()}`;
+    // Use a timestamp to force fresh fetches and bypass CDN/browser caching
+    return `${path}${separator}t=${Date.now()}`;
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
