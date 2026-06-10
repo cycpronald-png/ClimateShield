@@ -114,8 +114,7 @@ def compute_risk_score(wbt: float, consecutive_hot_nights: int, active_warnings:
         if found_multiplier: break
                 
     base = w + h + v
-    # 2x Risk Score Amplification
-    raw_score = (base * m) * 2.0
+    raw_score = base * m
     t8 = config["t8_floor"]
     if t8["enabled"]:
         for wt, sig in w_signals:
