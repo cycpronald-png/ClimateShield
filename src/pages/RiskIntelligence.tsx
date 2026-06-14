@@ -191,6 +191,7 @@ export default function RiskIntelligence() {
                                 readings={readings}
                                 selectedStation={selectedStation}
                                 onStationSelect={setSelectedStation}
+                                riskConfig={riskConfig}
                             />
                             <WBTTimeSeriesGraph
                                 forecastDays={forecast}
@@ -250,6 +251,7 @@ export default function RiskIntelligence() {
                             readings={readings}
                             selectedStation={selectedStation}
                             onStationSelect={setSelectedStation}
+                            riskConfig={riskConfig}
                         />
                         <WBTTimeSeriesGraph
                             forecastDays={forecast}

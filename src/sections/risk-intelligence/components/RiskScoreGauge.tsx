@@ -163,6 +163,9 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect, activeBan
     activeBands: any[];
     riskConfig?: RiskConfig | null;
 }) {
+    // AllStationsGrid displays cached composite_risk_scores from main page data (refreshes every 5 minutes).
+    // SingleGauge below fetches live scores when a station is selected.
+    // This design balances efficiency (avoiding N API calls) with responsiveness.
     const ALLOWED_STATIONS = [
         'Hong Kong Observatory',
         'Kai Tak Runway Park',
@@ -239,6 +242,9 @@ function AllStationsGrid({ readings, selectedStation, onStationSelect, activeBan
 }
 
 export function RiskScoreGauge({ readings, selectedStation, onStationSelect, riskConfig }: RiskScoreGaugeProps) {
+    // NOTE: Live Risk Score includes active warning multipliers (T8=3x, typhoon=3x, black rain=2x, etc.)
+    // This represents current real-time risk accounting for active HKO warnings. Compare against
+    // "Forecast Risk Score" (14-Day Forecast Risk Outlook) to see baseline risk without warnings.
     const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
     const [liveScore, setLiveScore] = useState<LiveScoreData | null>(null);
     const [liveError, setLiveError] = useState<string | null>(null);
@@ -260,10 +266,10 @@ export function RiskScoreGauge({ readings, selectedStation, onStationSelect, ris
         }
     }, [selectedStation]);
 
-    // Initial fetch + poll every 2 minutes
+    // Initial fetch + poll every 5 minutes (synchronized with main page refresh)
     useEffect(() => {
         fetchLiveScore();
-        const interval = setInterval(fetchLiveScore, 120000);
+        const interval = setInterval(fetchLiveScore, 300000);
         return () => clearInterval(interval);
     }, [fetchLiveScore]);
 
@@ -299,7 +305,7 @@ export function RiskScoreGauge({ readings, selectedStation, onStationSelect, ris
             <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                     <span className="text-lg">🎯</span>
-                    ClimateShield Risk Assessment
+                    ClimateShield Risk Assessment (Live)
                 </CardTitle>
                 <div className="flex gap-1">
                     <Button
