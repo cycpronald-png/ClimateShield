@@ -74,3 +74,22 @@ def test_t8_substring_no_longer_matches_t80():
     scored = compute_risk_score_v2(22.0, 0, real, DEFAULT_CONFIG)
     assert scored["m"] == 3.0
     assert scored["t8_applied"] is True
+
+
+@pytest.mark.parametrize("warning_type,signal,expected_m,label", [
+    ("Rainstorm Warning", "Black", 2.0, "signal-only black rainstorm"),
+    ("Rainstorm Warning", "Red", 1.5, "signal-only red rainstorm"),
+    ("Rainstorm Warning", "Amber", 2.0, "signal-only amber rainstorm"),
+    ("Strong Wind Signal", "T3", 1.5, "signal-only T3 strong wind"),
+    ("Standby Signal No. 1", "T1", 1.5, "T1 in warning_type"),
+])
+def test_signal_only_warnings_match_backend(
+    warning_type, signal, expected_m, label,
+):
+    """HKO sometimes uses a generic warning_type with the signal carrying the
+    severity. The backend matches both fields; this test documents those cases
+    for frontend parity."""
+    warnings = [{"warning_type": warning_type, "signal": signal}]
+    result = compute_risk_score_v2(22.0, 0, warnings, DEFAULT_CONFIG)
+    assert result["m"] == expected_m, f"{label}: expected multiplier {expected_m}, got {result['m']}"
+

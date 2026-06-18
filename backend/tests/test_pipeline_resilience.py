@@ -188,3 +188,55 @@ class TestForecastMaxTempOrPattern:
         max_temp = 0.0
         result = max_temp or 30.0
         assert result == 30.0, "Truthy `or` replaces 0°C with 30°C (bug!)"
+
+
+class TestWarningParsing:
+    """PIPE-04: HKO warnsum parser must expose human-readable names and rainstorm type signals."""
+
+    def test_parse_warnsum_uses_name_not_machine_key(self):
+        """Top-level keys like WRAIN must not become the warning_type."""
+        from services.weather_orchestrator import parse_hko_to_warnings
+
+        mock = {
+            "WRAIN": {
+                "name": "Rainstorm Warning Signal",
+                "code": "WRAINB",
+                "type": "Black",
+                "actionCode": "ISSUE",
+                "issueTime": "2026-06-18T15:40:00+08:00",
+                "updateTime": "2026-06-18T15:40:00+08:00",
+            },
+            "WTS": {
+                "name": "Thunderstorm Warning",
+                "code": "WTS",
+                "actionCode": "UPDATE",
+                "issueTime": "2026-06-18T01:30:00+08:00",
+                "expireTime": "2026-06-18T18:00:00+08:00",
+                "updateTime": "2026-06-18T16:15:00+08:00",
+            },
+        }
+        warnings = parse_hko_to_warnings(mock)
+        assert len(warnings) == 2
+        by_type = {w["warning_type"]: w for w in warnings}
+        assert "Rainstorm Warning Signal" in by_type
+        assert "Thunderstorm Warning" in by_type
+        assert by_type["Rainstorm Warning Signal"]["signal"] == "Black"
+        assert by_type["Thunderstorm Warning"]["signal"] is None
+
+    def test_parse_warnsum_amber_black_upgrade_preserved(self):
+        """Signal/type field must be captured so Amber → Black upgrades are visible."""
+        from services.weather_orchestrator import parse_hko_to_warnings
+
+        mock = {
+            "WRAIN": {
+                "name": "Rainstorm Warning Signal",
+                "code": "WRAINA",
+                "type": "Amber",
+                "actionCode": "ISSUE",
+                "issueTime": "2026-06-18T15:40:00+08:00",
+                "updateTime": "2026-06-18T15:40:00+08:00",
+            },
+        }
+        warnings = parse_hko_to_warnings(mock)
+        assert len(warnings) == 1
+        assert warnings[0]["signal"] == "Amber"

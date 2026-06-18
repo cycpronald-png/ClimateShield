@@ -79,6 +79,35 @@ function isT8(warning: { warning_type?: string; signal?: string }): boolean {
     return T8_TYPE_RE.test(wt) || T8_SIGNAL_RE.test(sig);
 }
 
+function matchesWarning(
+    warning: { warning_type?: string; signal?: string },
+    key: keyof RiskConfig['warning_multipliers'],
+): boolean {
+    const wt = String(warning.warning_type ?? '').toLowerCase();
+    const sig = String(warning.signal ?? '').toLowerCase();
+
+    // Mirrors backend/services/climate/scoring_v2.py::lookup_warning_multiplier
+    switch (key) {
+        case 't8':
+            return isT8(warning);
+        case 'black_rain':
+            return wt.includes('black rainstorm') || sig === 'black';
+        case 't3':
+            return wt.includes('signal no. 3') || wt.includes('strong wind') || sig === 't3';
+        case 't1_or_red_rain':
+            return (
+                wt.includes('standby signal no. 1')
+                || wt.includes('signal no. 1')
+                || wt.includes('red rainstorm')
+                || sig === 'red'
+            );
+        case 'thunderstorm_or_amber_rain':
+            return wt.includes('thunderstorm') || wt.includes('amber rainstorm') || sig === 'amber';
+        default:
+            return false;
+    }
+}
+
 const STATE_PRIORITY: StateName[] = ['Purple', 'Red', 'Yellow', 'Low', 'Safe'];
 
 /**
@@ -144,31 +173,13 @@ export function computeRiskScoreV2(
             't1_or_red_rain',
             'thunderstorm_or_amber_rain',
         ];
-        for (const w of activeWarnings) {
-            const wt = String(w.warning_type ?? '').toLowerCase();
+        outer: for (const warning of activeWarnings) {
             for (const key of priority) {
-                if (key === 't8' && isT8(w)) {
-                    m = config.warning_multipliers.t8 ?? m;
-                    break;
-                }
-                if (key === 'black_rain' && wt.includes('black rainstorm')) {
-                    m = config.warning_multipliers.black_rain ?? m;
-                    break;
-                }
-                if (key === 't3' && (wt.includes('signal no. 3') || wt.includes('strong wind'))) {
-                    m = config.warning_multipliers.t3 ?? m;
-                    break;
-                }
-                if (key === 't1_or_red_rain' && (wt.includes('standby signal no. 1') || wt.includes('signal no. 1') || wt.includes('red rainstorm'))) {
-                    m = config.warning_multipliers.t1_or_red_rain ?? m;
-                    break;
-                }
-                if (key === 'thunderstorm_or_amber_rain' && (wt.includes('thunderstorm') || wt.includes('amber rainstorm'))) {
-                    m = config.warning_multipliers.thunderstorm_or_amber_rain ?? m;
-                    break;
+                if (matchesWarning(warning, key)) {
+                    m = config.warning_multipliers[key] ?? m;
+                    break outer;
                 }
             }
-            if (m > 1.0) break;
         }
     }
 

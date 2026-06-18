@@ -249,25 +249,48 @@ def parse_hko_to_forecast(data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
 
 def parse_hko_to_warnings(data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Parse HKO warnsum JSON into warning dicts."""
+    """Parse HKO warnsum JSON into warning dicts.
+
+    HKO warnsum uses machine-readable top-level keys (e.g. ``WRAIN``, ``WTS``)
+    and puts the human-readable label in ``name`` / ``desc``. Rainstorm
+    severity is in ``type`` (Amber/Red/Black), not ``signal``. We normalise
+    both fields so downstream scoring can match the canonical strings.
+    """
     if not data:
         return []
     warnings = []
     try:
-        # warnsum is a flat dict: { warning_type: { signal, issueTime, ... }, ... }
+        # warnsum is a flat dict: { warning_type: { name, code, type, issueTime, ... }, ... }
         for wtype, wdata in data.items():
             if not isinstance(wdata, dict):
                 continue
+
+            # Prefer the human-readable name; fall back to top-level key only
+            # if the name field is missing.
+            warning_type = _safe_str(wdata.get("name")) or wtype
+            signal = _safe_str(wdata.get("type")) or _safe_str(wdata.get("signal"))
+            description = _safe_str(wdata.get("desc")) or warning_type
+
+            # HKO uses "type" for rainstorm colour and "signal" for typhoon
+            # numbers. Keep both semantically aligned: if neither is present,
+            # leave signal None.
+            if not signal:
+                signal = None
+
+            logger.debug(
+                "Parsed HKO warning: key=%s warning_type=%s signal=%s",
+                wtype, warning_type, signal,
+            )
             warnings.append({
-                "warning_type": wtype,
-                "signal": wdata.get("signal"),
-                "description": wdata.get("desc", wtype),
+                "warning_type": warning_type,
+                "signal": signal,
+                "description": description,
                 "issue_time": _parse_iso_datetime(wdata.get("issueTime")),
                 "update_time": _parse_iso_datetime(wdata.get("updateTime")),
                 "status": "active",
             })
     except Exception as e:
-        logger.exception("Error parsing warnings")
+        logger.exception("Error parsing warnings: %s", e)
     return warnings
 
 
@@ -454,17 +477,34 @@ def persist_weather_data(db: Session, raw: Dict[str, Optional[Dict[str, Any]]]) 
         .filter(models.WeatherWarning.status == "active")
         .all()
     )
+    active_by_type: Dict[str, models.WeatherWarning] = {
+        db_w.warning_type: db_w for db_w in active_db_warnings
+    }
     current_types = {w["warning_type"] for w in warnings}
     for db_w in active_db_warnings:
         if db_w.warning_type not in current_types:
             db_w.status = "inactive"
-    # Persist new warnings — deduplicate by warning_type to avoid duplicates
-    # Only add warnings that don't already have an active row in the DB
-    existing_active_types = {db_w.warning_type for db_w in active_db_warnings}
-    new_warnings = [w for w in warnings if w["warning_type"] not in existing_active_types]
-    for w in new_warnings:
-        db.add(models.WeatherWarning(**w))
-    result["warnings_persisted"] = len(new_warnings)
+
+    # Persist new warnings. If an active row already exists for the same
+    # warning_type, update it in place so signal/issue_time changes are
+    # reflected (e.g. Amber -> Black rainstorm upgrade). Only create a new
+    # row when no active row exists.
+    new_warning_count = 0
+    updated_warning_count = 0
+    for w in warnings:
+        existing = active_by_type.get(w["warning_type"])
+        if existing:
+            existing.signal = w["signal"]
+            existing.description = w["description"]
+            existing.issue_time = w["issue_time"]
+            existing.update_time = w["update_time"]
+            existing.status = w["status"]
+            updated_warning_count += 1
+        else:
+            db.add(models.WeatherWarning(**w))
+            new_warning_count += 1
+    result["warnings_persisted"] = new_warning_count
+    result["warnings_updated"] = updated_warning_count
 
     # 5. Update generation counters (impact KPIs) — scoped to monitored stations
     monitored_readings = [r for r in readings if r["station"] in MONITORED_STATIONS]
@@ -603,6 +643,16 @@ def _safe_float(value: Any) -> Optional[float]:
         return None
     try:
         return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_str(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    try:
+        s = str(value).strip()
+        return s if s else None
     except (ValueError, TypeError):
         return None
 
