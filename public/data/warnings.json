@@ -5,8 +5,13 @@
     "status": "active"
   },
   {
+    "warning_type": "Landslip Warning",
+    "signal": "WL",
+    "status": "active"
+  },
+  {
     "warning_type": "Rainstorm Warning Signal",
-    "signal": "WRAINB",
+    "signal": "WRAINR",
     "status": "active"
   },
   {
