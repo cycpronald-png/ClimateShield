@@ -11,7 +11,7 @@
   },
   {
     "warning_type": "Rainstorm Warning Signal",
-    "signal": "WRAINR",
+    "signal": "WRAINB",
     "status": "active"
   },
   {

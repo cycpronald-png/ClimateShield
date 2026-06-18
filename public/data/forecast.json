@@ -6,7 +6,7 @@
     "max_temp": 31,
     "min_rh": 70,
     "max_rh": 95,
-    "wet_bulb_peak": 25.49,
+    "wet_bulb_peak": 24.84,
     "composite_risk_score": 4.0,
     "risk_level": "Safe",
     "weather_desc": "Mainly cloudy with occasional showers. A few squally thunderstorms at first. Showers will ease off with sunny periods in the afternoon.",
