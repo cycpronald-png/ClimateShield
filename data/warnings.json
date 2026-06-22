@@ -1,17 +1,7 @@
 [
   {
-    "warning_type": "Special Announcement on Flooding in Northern New Territories",
-    "signal": "WFNTSA",
-    "status": "active"
-  },
-  {
-    "warning_type": "Rainstorm Warning Signal",
-    "signal": "WRAINB",
-    "status": "active"
-  },
-  {
-    "warning_type": "Thunderstorm Warning",
-    "signal": "WTS",
+    "warning_type": "Very Hot Weather Warning",
+    "signal": "WHOT",
     "status": "active"
   }
 ]
