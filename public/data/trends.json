@@ -61,15 +61,15 @@
     {
       "date": "20260627",
       "type": "forecast",
-      "composite_risk_score": 4.0,
+      "composite_risk_score": 2.0,
       "risk_level": "Safe",
-      "wbt": 25.68,
+      "wbt": 25.13,
       "hne": 10.0
     },
     {
       "date": "20260628",
       "type": "forecast",
-      "composite_risk_score": 8.0,
+      "composite_risk_score": 4.0,
       "risk_level": "Safe",
       "wbt": 28.83,
       "hne": 12.0
@@ -77,47 +77,47 @@
     {
       "date": "20260629",
       "type": "forecast",
-      "composite_risk_score": 20.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 10.0,
+      "risk_level": "Safe",
       "wbt": 29.4,
       "hne": 14.0
     },
     {
       "date": "20260630",
       "type": "forecast",
-      "composite_risk_score": 22.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 11.0,
+      "risk_level": "Safe",
       "wbt": 29.0,
       "hne": 14.0
     },
     {
       "date": "20260701",
       "type": "forecast",
-      "composite_risk_score": 18.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 9.0,
+      "risk_level": "Safe",
       "wbt": 29.95,
       "hne": 16.0
     },
     {
       "date": "20260702",
       "type": "forecast",
-      "composite_risk_score": 18.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 9.0,
+      "risk_level": "Safe",
       "wbt": 29.95,
       "hne": 16.0
     },
     {
       "date": "20260703",
       "type": "forecast",
-      "composite_risk_score": 30.0,
-      "risk_level": "Purple",
+      "composite_risk_score": 15.0,
+      "risk_level": "Low",
       "wbt": 29.79,
       "hne": 14.0
     },
     {
       "date": "20260704",
       "type": "forecast",
-      "composite_risk_score": 8.0,
+      "composite_risk_score": 4.0,
       "risk_level": "Safe",
       "wbt": 28.83,
       "hne": 12.0
@@ -125,7 +125,7 @@
     {
       "date": "20260705",
       "type": "forecast",
-      "composite_risk_score": 8.0,
+      "composite_risk_score": 4.0,
       "risk_level": "Safe",
       "wbt": 29.2,
       "hne": 12.0
