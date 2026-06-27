@@ -1,58 +1,58 @@
 {
   "backward": [
     {
-      "date": "20260619",
+      "date": "20260620",
       "type": "history",
-      "composite_risk_score": 9.0,
+      "composite_risk_score": 2.0,
       "risk_level": "Safe",
       "wbt": 24.09,
       "hne": 5.2
     },
     {
-      "date": "20260620",
+      "date": "20260621",
       "type": "history",
-      "composite_risk_score": 11.0,
+      "composite_risk_score": 2.0,
       "risk_level": "Safe",
       "wbt": 25.13,
       "hne": 6.0
     },
     {
-      "date": "20260621",
+      "date": "20260622",
       "type": "history",
-      "composite_risk_score": 22.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 4.0,
+      "risk_level": "Safe",
       "wbt": 25.04,
       "hne": 6.8
     },
     {
-      "date": "20260622",
+      "date": "20260623",
       "type": "history",
-      "composite_risk_score": 13.0,
-      "risk_level": "Low",
+      "composite_risk_score": 2.0,
+      "risk_level": "Safe",
       "wbt": 24.65,
       "hne": 5.2
     },
     {
-      "date": "20260623",
+      "date": "20260624",
       "type": "history",
-      "composite_risk_score": 13.0,
-      "risk_level": "Low",
+      "composite_risk_score": 2.0,
+      "risk_level": "Safe",
       "wbt": 24.57,
       "hne": 6.0
     },
     {
-      "date": "20260624",
+      "date": "20260625",
       "type": "history",
-      "composite_risk_score": 26.0,
-      "risk_level": "Purple",
+      "composite_risk_score": 4.0,
+      "risk_level": "Safe",
       "wbt": 25.61,
       "hne": 6.8
     },
     {
-      "date": "20260625",
+      "date": "20260626",
       "type": "history",
-      "composite_risk_score": 13.0,
-      "risk_level": "Low",
+      "composite_risk_score": 2.0,
+      "risk_level": "Safe",
       "wbt": 24.09,
       "hne": 5.2
     }
@@ -63,8 +63,8 @@
       "type": "forecast",
       "composite_risk_score": 2.0,
       "risk_level": "Safe",
-      "wbt": 25.13,
-      "hne": 10.0
+      "wbt": 25.88,
+      "hne": 12.0
     },
     {
       "date": "20260628",
