@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "warning_type": "Thunderstorm Warning",
+    "signal": "WTS",
+    "status": "active"
+  }
+]
