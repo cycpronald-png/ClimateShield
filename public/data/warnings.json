@@ -1,12 +1,7 @@
 [
   {
-    "warning_type": "Thunderstorm Warning",
-    "signal": "WTS",
-    "status": "active"
-  },
-  {
-    "warning_type": "Tropical Cyclone Warning Signal",
-    "signal": "TC1",
+    "warning_type": "Strong Monsoon Signal",
+    "signal": "WMSGNL",
     "status": "active"
   }
 ]
