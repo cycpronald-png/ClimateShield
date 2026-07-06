@@ -59,20 +59,12 @@
   ],
   "forward": [
     {
-      "date": "20260706",
+      "date": "20260707",
       "type": "forecast",
       "composite_risk_score": 4.0,
       "risk_level": "Safe",
-      "wbt": 25.52,
+      "wbt": 25.19,
       "hne": 12.0
-    },
-    {
-      "date": "20260707",
-      "type": "forecast",
-      "composite_risk_score": 8.0,
-      "risk_level": "Safe",
-      "wbt": 28.23,
-      "hne": 10.0
     },
     {
       "date": "20260708",
@@ -85,13 +77,21 @@
     {
       "date": "20260709",
       "type": "forecast",
-      "composite_risk_score": 20.0,
-      "risk_level": "Yellow",
+      "composite_risk_score": 8.0,
+      "risk_level": "Safe",
       "wbt": 29.4,
       "hne": 14.0
     },
     {
       "date": "20260710",
+      "type": "forecast",
+      "composite_risk_score": 24.0,
+      "risk_level": "Red",
+      "wbt": 30.05,
+      "hne": 18.0
+    },
+    {
+      "date": "20260711",
       "type": "forecast",
       "composite_risk_score": 26.0,
       "risk_level": "Purple",
@@ -99,19 +99,11 @@
       "hne": 18.0
     },
     {
-      "date": "20260711",
-      "type": "forecast",
-      "composite_risk_score": 30.0,
-      "risk_level": "Purple",
-      "wbt": 30.48,
-      "hne": 18.0
-    },
-    {
       "date": "20260712",
       "type": "forecast",
-      "composite_risk_score": 18.0,
-      "risk_level": "Yellow",
-      "wbt": 29.95,
+      "composite_risk_score": 26.0,
+      "risk_level": "Purple",
+      "wbt": 29.54,
       "hne": 16.0
     },
     {
@@ -119,7 +111,7 @@
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 29.0,
+      "wbt": 29.4,
       "hne": 14.0
     },
     {
@@ -127,8 +119,16 @@
       "type": "forecast",
       "composite_risk_score": 8.0,
       "risk_level": "Safe",
-      "wbt": 28.44,
+      "wbt": 28.83,
       "hne": 12.0
+    },
+    {
+      "date": "20260715",
+      "type": "forecast",
+      "composite_risk_score": 8.0,
+      "risk_level": "Safe",
+      "wbt": 29.4,
+      "hne": 14.0
     }
   ]
 }
