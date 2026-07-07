@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "warning_type": "Special Announcement on Flooding in Northern New Territories",
+    "signal": "WFNTSA",
+    "status": "active"
+  },
+  {
+    "warning_type": "Rainstorm Warning Signal",
+    "signal": "WRAINA",
+    "status": "active"
+  },
+  {
+    "warning_type": "Thunderstorm Warning",
+    "signal": "WTS",
+    "status": "active"
+  }
+]
