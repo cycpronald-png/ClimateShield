@@ -1,14 +1,14 @@
 {
   "consecutive_hot_nights": 0,
-  "last_date": "2026-07-16",
-  "wbt_calculations": 9047,
-  "risk_scores": 7391,
-  "hko_fetches": 549,
-  "weather_readings": 4839,
+  "last_date": "2026-07-17",
+  "wbt_calculations": 9087,
+  "risk_scores": 7431,
+  "hko_fetches": 552,
+  "weather_readings": 4865,
   "alerts_generated": 0,
-  "forecast_days": 2552,
-  "warnings": 134,
-  "hne_checks": 183,
+  "forecast_days": 2566,
+  "warnings": 136,
+  "hne_checks": 184,
   "wbt_thresholds": [
     {
       "max_temp": 21.9,
