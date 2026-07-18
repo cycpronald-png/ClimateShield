@@ -6,13 +6,13 @@
     "max_temp": 31,
     "min_rh": 75,
     "max_rh": 95,
-    "wet_bulb_peak": 26.02,
+    "wet_bulb_peak": 24.71,
     "composite_risk_score": 4.0,
     "risk_level": "Safe",
     "weather_desc": "Sunny intervals and a few showers. More showers in some areas with squally thunderstorms at first.",
     "wind": "South to southwest force 4, occasionally force 5 offshore at first.",
     "psr": "Medium",
-    "icon_code": 54,
+    "icon_code": 63,
     "source": "hko"
   },
   {
