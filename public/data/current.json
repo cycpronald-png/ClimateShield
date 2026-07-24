@@ -1,236 +1,236 @@
 [
   {
     "station": "King's Park",
-    "temp_c": 29,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 25.25,
-    "composite_risk_score": 8.0,
+    "temp_c": 32,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.87,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.035947+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014863+00:00"
   },
   {
     "station": "Hong Kong Observatory",
-    "temp_c": 29,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 25.25,
-    "composite_risk_score": 8.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.035980+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014911+00:00"
   },
   {
     "station": "Wong Chuk Hang",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 32,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.87,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.035997+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014935+00:00"
   },
   {
     "station": "Ta Kwu Ling",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 34,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 26.58,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036013+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014955+00:00"
   },
   {
     "station": "Lau Fau Shan",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 34,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 26.58,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036028+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014973+00:00"
   },
   {
     "station": "Tai Po",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 34,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 26.58,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036042+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014986+00:00"
   },
   {
     "station": "Sha Tin",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036055+00:00"
+    "recorded_at": "2026-07-24T10:08:41.014998+00:00"
   },
   {
     "station": "Tuen Mun",
     "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.01,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036068+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015010+00:00"
   },
   {
     "station": "Tseung Kwan O",
     "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 23.16,
+    "composite_risk_score": 1.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036081+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015022+00:00"
   },
   {
     "station": "Sai Kung",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 32,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.87,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036093+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015033+00:00"
   },
   {
     "station": "Cheung Chau",
-    "temp_c": 28,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 24.33,
-    "composite_risk_score": 8.0,
+    "temp_c": 30,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 23.16,
+    "composite_risk_score": 1.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036114+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015054+00:00"
   },
   {
     "station": "Chek Lap Kok",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036126+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015066+00:00"
   },
   {
     "station": "Tsing Yi",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 30,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 23.16,
+    "composite_risk_score": 1.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036138+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015078+00:00"
   },
   {
     "station": "Tsuen Wan Ho Koon",
-    "temp_c": 27,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 23.41,
-    "composite_risk_score": 7.0,
+    "temp_c": 30,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 23.16,
+    "composite_risk_score": 1.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036151+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015090+00:00"
   },
   {
     "station": "Tsuen Wan Shing Mun Valley",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 32,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.87,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036165+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015101+00:00"
   },
   {
     "station": "Hong Kong Park",
-    "temp_c": 29,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 25.25,
-    "composite_risk_score": 8.0,
+    "temp_c": 31,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.01,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036178+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015113+00:00"
   },
   {
     "station": "Shau Kei Wan",
     "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.01,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036201+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015127+00:00"
   },
   {
     "station": "Kowloon City",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036213+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015139+00:00"
   },
   {
     "station": "Happy Valley",
-    "temp_c": 32,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 28.03,
-    "composite_risk_score": 10.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036227+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015151+00:00"
   },
   {
     "station": "Wong Tai Sin",
-    "temp_c": 32,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 28.03,
-    "composite_risk_score": 10.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036240+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015162+00:00"
   },
   {
     "station": "Stanley",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 31,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.01,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036252+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015174+00:00"
   },
   {
     "station": "Kwun Tong",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036264+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015186+00:00"
   },
   {
     "station": "Sham Shui Po",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 32,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.87,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036276+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015198+00:00"
   },
   {
     "station": "Kai Tak Runway Park",
-    "temp_c": 31,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 27.1,
-    "composite_risk_score": 10.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036288+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015209+00:00"
   },
   {
     "station": "Yuen Long Park",
-    "temp_c": 30,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 26.18,
-    "composite_risk_score": 8.0,
+    "temp_c": 33,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 25.72,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036300+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015222+00:00"
   },
   {
     "station": "Tai Mei Tuk",
-    "temp_c": 29,
-    "humidity_pct": 74,
-    "wet_bulb_temp_c": 25.25,
-    "composite_risk_score": 8.0,
+    "temp_c": 32,
+    "humidity_pct": 56,
+    "wet_bulb_temp_c": 24.87,
+    "composite_risk_score": 2.0,
     "risk_level": "Safe",
-    "recorded_at": "2026-07-24T01:54:47.036311+00:00"
+    "recorded_at": "2026-07-24T10:08:41.015234+00:00"
   }
 ]
