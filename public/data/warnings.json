@@ -3,5 +3,10 @@
     "warning_type": "Very Hot Weather Warning",
     "signal": "WHOT",
     "status": "active"
+  },
+  {
+    "warning_type": "Tropical Cyclone Warning Signal",
+    "signal": "TC1",
+    "status": "active"
   }
 ]
